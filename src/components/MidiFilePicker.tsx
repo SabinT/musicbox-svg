@@ -29,7 +29,6 @@ export default class MidiFilePicker extends React.Component<IMidiFilePickerProps
                 if (ev.dataTransfer.items[i].kind === 'file') {
                     let file = ev.dataTransfer.items[i].getAsFile();
                     if (file) {
-                        this.setState({fileName: file.name});
                         this.openFile(file);
                         break;
                     }
@@ -40,14 +39,22 @@ export default class MidiFilePicker extends React.Component<IMidiFilePickerProps
         } else {
             // Use DataTransfer interface to access the file(s)
             for (let i = 0; i < ev.dataTransfer.files.length; i++) {
-                this.setState({fileName: ev.dataTransfer.files[i].name});
                 this.openFile(ev.dataTransfer.files[i]);
                 break;
             }
         }
     }
 
+    private handleInputChange(event: React.FormEvent<HTMLInputElement>) {
+        const target = event.currentTarget;
+        if (target.files) {
+            this.openFile(target.files[0]);
+        }
+    }
+
     private openFile(file: File) {
+        this.setState({fileName: file.name});
+
         var reader = new FileReader();
         reader.onload = (e) => {
             if (this.props.onFileLoaded && reader.result instanceof ArrayBuffer) {
@@ -68,7 +75,7 @@ export default class MidiFilePicker extends React.Component<IMidiFilePickerProps
 
     render(){
         const message: JSX.Element = this.state.fileName
-            ? <p>{ this.state.fileName } loaded. Drag anothe file to replace.</p>
+            ? <p>{ this.state.fileName } loaded. Drag another file to replace.</p>
             : <p>No file loaded, drag and drop a file here.</p>;
 
         return (
@@ -77,6 +84,9 @@ export default class MidiFilePicker extends React.Component<IMidiFilePickerProps
                 onDragOver={ (ev) => this.dragOverHandler(ev) }
             >
                 { message }
+                <div>
+                    Or <input type="file" id="myfile" name="myfile" onChange={ (ev) => this.handleInputChange(ev) }/>
+                </div>
             </Box>
         )  
     }
