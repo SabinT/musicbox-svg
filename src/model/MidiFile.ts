@@ -1,4 +1,5 @@
 import { IMidiEvent, ChannelMessageType, NoteMidiEvent, ControllerMidiEvent as ControllerChangeMidiEvent, ProgramChangeMidiEvent, ChannelPressureMidiEvent, PitchBendMidiEvent, MetaMidiEvent } from "./MidiEvents";
+import { stat } from "fs";
 
 /**
  * A valid MIDI file will contain a single Header chunk followed by one or more Track chunks.
@@ -160,7 +161,11 @@ export class MidiHeader implements IMidiChunk {
 export class MidiTrack implements IMidiChunk {
     public events: IMidiEvent[] = [];
 
-    constructor(dataView: DataView, dataStartOffset: number, chunkLength: number) {
+    // Used to calculate absolute timing data while parsing tracks
+    private header: MidiHeader;
+
+    constructor(header: MidiHeader, dataView: DataView, dataStartOffset: number, chunkLength: number) {
+        this.header = header;
         this.parseFromRawData(dataView, dataStartOffset, chunkLength);
     }
 
@@ -168,19 +173,39 @@ export class MidiTrack implements IMidiChunk {
         let currentOffset = dataStartOffset;
         let done: boolean = false;
 
+        let cumulativeSeconds = 0;
+        let secondsPerTick = 0;
+        const usesMetricalTiming = this.header.timingScheme === MidiTimingScheme.metrical;
+        if (usesMetricalTiming && this.header.pulsesPerQuarterNote) {
+            // Default tempo of 120 bpm if no tempo change event is present.
+            secondsPerTick = 60 / (120 * this.header.pulsesPerQuarterNote);
+        }
+
+        let previousStatusByte: number = 0;
         while (!done && currentOffset < dataStartOffset + chunkLength) {
-            // Read delta time
-            // Top bit being set indicates another byte will follow
+            // Read delta time (big-endian sequence of 7-bit numbers)
+            // Top bit being set indicates another byte will follow.
             let deltaTimeCurrentByte = dataView.getUint8(currentOffset++);
 
-            let deltaTime = deltaTimeCurrentByte & 0b01111111
+            let deltaTime = deltaTimeCurrentByte & 0b01111111;
             while (deltaTimeCurrentByte & 0b10000000) {
                 deltaTimeCurrentByte = dataView.getUint8(currentOffset++);
-                deltaTime = deltaTime << 7 + (deltaTimeCurrentByte & 0b01111111);
+                deltaTime = (deltaTime << 7) + (deltaTimeCurrentByte & 0b01111111);
+            }
+
+            if (usesMetricalTiming) {
+                cumulativeSeconds += secondsPerTick * deltaTime;
             }
 
             // Read status byte to find event type
-            const statusByte = dataView.getUint8(currentOffset++);
+            let statusByte = dataView.getUint8(currentOffset++);
+
+            if (statusByte < 0x80) {
+                statusByte = previousStatusByte;
+            } else {
+                previousStatusByte = statusByte;
+            }
+
             const messageType = (statusByte & 0b11110000) >> 4;
 
             if (messageType >= ChannelMessageType.NoteOff
@@ -222,6 +247,10 @@ export class MidiTrack implements IMidiChunk {
                         throw new Error("Unrecognized status byte: " + statusByte);
                 }
 
+                if (usesMetricalTiming) {
+                    midiEvent.absoluteTimeInSeconds = cumulativeSeconds;
+                }
+
                 this.events.push(midiEvent);
             } else if (statusByte >= 0b11110000 && statusByte <= 0b11110111) {
                 // SysEx messages
@@ -234,14 +263,23 @@ export class MidiTrack implements IMidiChunk {
                 // Meta messages: with the general format `FF type length data`
                 let midiEvent = new MetaMidiEvent(deltaTime);
                 midiEvent.metaMessageType = dataView.getUint8(currentOffset++);
-                const length = dataView.getUint8(currentOffset++);
-                midiEvent.metaMessageRawData = dataView.buffer.slice(currentOffset, currentOffset + length);
-                currentOffset += length;
 
+                const length = dataView.getUint8(currentOffset++);
                 if (midiEvent.metaMessageType === 0x2F && length === 0) {
                     // This is the end of track marker.
                     done = true;
                 }
+
+                if (midiEvent.metaMessageType === 0x51 && length === 3 && this.header.pulsesPerQuarterNote) {
+                    // Tempo change
+                    const microsecondsPerQuarterNote =
+                        (dataView.getUint16(currentOffset) << 8) +
+                        dataView.getUint8(currentOffset + 2);
+                    secondsPerTick = microsecondsPerQuarterNote / (1000 * 1000 * this.header.pulsesPerQuarterNote);
+                }
+
+                midiEvent.metaMessageRawData = dataView.buffer.slice(currentOffset, currentOffset + length);
+                currentOffset += length;
             }
         }
     }
@@ -278,7 +316,7 @@ export default class MidiFile {
 
                 case 'MTrk':
                     // This is a track
-                    this.chunks.push(new MidiTrack(dataView, chunkDataStartOffset, chunkLength));
+                    this.chunks.push(new MidiTrack(this.chunks[0] as MidiHeader, dataView, chunkDataStartOffset, chunkLength));
                     break;
 
                 default:
