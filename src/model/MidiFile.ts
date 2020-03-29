@@ -251,6 +251,7 @@ export class MidiTrack implements IMidiChunk {
                     midiEvent.absoluteTimeInSeconds = cumulativeSeconds;
                 }
 
+                midiEvent.channelMessageType = messageType;
                 this.events.push(midiEvent);
             } else if (statusByte >= 0b11110000 && statusByte <= 0b11110111) {
                 // SysEx messages

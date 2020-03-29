@@ -1,4 +1,5 @@
 import MidiFile, { MidiTimingScheme, MidiFileFormat } from '../model/MidiFile';
+import { ChannelMessageType } from '../model/MidiEvents';
 
 export default class MidiJsonConverter {
     public static GetJson(midiFile: MidiFile): string {
@@ -19,6 +20,9 @@ function prettyPrintReplacer(key: string, value: any) {
 
         case 'fileFormat':
             return MidiFileFormat[value];
+
+        case 'channelMessageType':
+            return ChannelMessageType[value];
 
         default:
             return value;
