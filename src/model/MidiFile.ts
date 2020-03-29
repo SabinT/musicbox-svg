@@ -5,12 +5,16 @@
  * bytes 4 - 7 : chunklen (the number of bytes comprising the following data)
  * Chunks with unrecognized identifier should be skipped (anything other than 'MThd' or 'MTrk').
  *
- * All data is big-endian.
+ * All multi-byte data is big-endian.
  */
 export interface IMidiChunk {
-    id: string;
-    length: number;
-    rawData: ArrayBuffer;
+    /**
+     * Parses out the chunk from a raw MIDI buffer given the start offset and length in bytes.
+     * @param dataView The raw MIDI data buffer
+     * @param dataStartOffset The byte position within `dataView`, where the chunk data (after the
+     *      8-byte header) starts.
+     */
+    parseFromRawData(dataView: DataView, dataStartOffset: number): void;
 }
 
 export enum MidiFileFormat {
@@ -18,7 +22,7 @@ export enum MidiFileFormat {
      * The MIDI file contains just a single MTrk chunk, that can potentially contain multi-channel
      * MIDI data.
      */
-    SingleTrack = 0,
+    singleTrack = 0,
 
     /**
      * The file contains two or more MTrk chunks (as specified by the following parameter, ntracks)
@@ -29,7 +33,7 @@ export enum MidiFileFormat {
      * store multi-channel data in a track, though it is more usual to keep data relevant to a
      * single MIDI channel in each track.
      */
-    MultiTrack = 1,
+    multiTrack = 1,
 
     /**
      * Not very popular, don't care.
@@ -38,8 +42,8 @@ export enum MidiFileFormat {
 }
 
 export enum MidiTimingScheme {
-    Metrical = 0,
-    TimeCode = 1,
+    metrical = 0,
+    timecode = 1,
 }
 
 /**
@@ -49,16 +53,16 @@ export enum MidiTimingScheme {
  * (i.e., chunklen = 6), this should not be assumed (i.e., the chunklen value should always be read
  * and acted upon, to allow for possible future extension to the standard).
  */
-export interface IMidiHeaderChunk extends IMidiChunk {
+export class MidiHeader implements IMidiChunk {
     /** Format of the MIDI file (type 0, 1, 2). Corresponds to first 16 bits of the header data. */
-    format: MidiFileFormat;
+    public fileFormat: MidiFileFormat = MidiFileFormat.multiTrack;
 
     /**
      * The number of MTrk chunks following this MThd chunk.
      * For a format 0 MIDI file, ntracks can only be '1'.
      * Second 16-bits of the header data.
      */
-    numTracks: number;
+    public numTracks: number = 0;
 
     /**
      * Specifies the timing interval to be used, and whether timecode (Hrs.Mins.Secs.Frames) or
@@ -66,52 +70,112 @@ export interface IMidiHeaderChunk extends IMidiChunk {
      * related, whereas with timecode the timing interval is in absolute time, and hence not related
      * to tempo. This is the third 16 bytes of the header data.
      */
-    rawtickdiv: number;
+    public rawTimingData: number = 0;
 
-    /** Parsed from bit 15 of rawtickdiv, 0 = Metrical, 1 = timecode. @see rawtickdiv */
-    timingScheme: MidiTimingScheme;
+    /** Parsed from bit 15 of rawTimingDivision, 0 = Metrical, 1 = timecode. @see rawTimingDivision */
+    public timingScheme: MidiTimingScheme = MidiTimingScheme.metrical;
 
     /**
-     * If @see timingScheme is @see MidiTimingScheme.Metrical, bits 0 - 14 of @see rawtickdiv are a
-     * 15-bit number indicating the number of sub-divisions of a quarter note (a.k.a. pulses per
-     * quarter note, ppqn). A common value is 96, which would be represented in hex as `00 60`.
+     * If @see timingScheme is @see MidiTimingScheme.Metrical, bits 0-14 of @see rawTimingDivision
+     * are a 15-bit number indicating the number of sub-divisions of a quarter note (a.k.a. pulses
+     * per quarter note, ppqn). A common value is 96, which would be represented in hex as `00 60`.
      * You will notice that 96 is a nice number for dividing by 2 or 3 (with further repeated
      * halving), so using this value for tickdiv allows triplets and dotted notes right down to
      * hemi-demi-semiquavers to be represented.
      */
-    pulsesPerQuarterNote?: number;
+    public pulsesPerQuarterNote?: number;
 
     /**
-     * If @see timingScheme is @see MidiTimingScheme.TimeCode, bits 8 - 15 of @see rawtickdiv (i.e.,
-     * the first byte) specify the number of frames per second (fps), and will be one of the four
-     * SMPTE standards: 24, 25, 29 or 30, though expressed as a negative value using 2's complement
-     * notation. (e.g, 24 is represented as `E8`)
+     * If @see timingScheme is @see MidiTimingScheme.TimeCode, bits 8-15 of @see rawTimingDivision
+     * (i.e., the first byte) specify the number of frames per second (fps), and will be one of the
+     * four SMPTE standards: 24, 25, 29 or 30, though expressed as a negative value using 2's
+     * complement notation. (e.g, 24 is represented as `E8`)
      */
-    framesPerSecond?: number;
+    public framesPerSecond?: number;
 
     /**
-     * If @see timingScheme is @see MidiTimingScheme.TimeCode, bits 0 - 7 of @see rawtickdiv (the
-     * second byte) specify the sub-frame resolution (i.e., the number of sub-divisions of a frame).
+     * If @see timingScheme is @see MidiTimingScheme.TimeCode, bits 0 - 7 of @see rawTimingDivision
+     * (second byte) specify the sub-frame resolution (i.e.,  number of sub-divisions of a frame).
      * Typical values are 4 (corresponding to MIDI Time Code), 8, 10, 80(corresponding to SMPTE bit
      * resolution), or 100. A timing resolution of 1 ms can be achieved by specifying 25 fps and 40
      * sub-frames, which would be encoded in hex as `E7 28`.
      */
-    subFrameResolution?: number;
+    public subFrameResolution?: number;
+
+    constructor(dataView: DataView, startOffset: number) {
+        this.parseFromRawData(dataView, startOffset);
+    }
+
+    public parseFromRawData(dataView: DataView, startOffset: number) {
+        // First 16 bits
+        const format: MidiFileFormat =
+            dataView.getUint16(startOffset, /* littleEndian: */ false) as MidiFileFormat;
+
+        // Second 16 bits
+        const numTracks: number =
+            dataView.getUint16(startOffset + 2,  /* littleEndian: */ false);
+
+        // Third 16 bits
+        const rawTimingData = dataView.getUint16(startOffset + 4, /* littleEndian: */ false);
+
+        // Bit 15 = tickdiv
+        const timingScheme = rawTimingData & 0x8000 as MidiTimingScheme;
+
+        this.fileFormat = format;
+        this.rawTimingData = rawTimingData;
+        this.numTracks = numTracks;
+        this.timingScheme = timingScheme;
+
+        if (timingScheme == MidiTimingScheme.metrical) {
+            // Bits 0-14
+            this.pulsesPerQuarterNote = 0x7FFF & rawTimingData;
+        } else {
+            // Timing scheme is timecode.
+            // Bits 8 - 15, note: number is stored as 2's complement
+            this.framesPerSecond = ~(0xFF00 & rawTimingData) + 1;
+
+            // Bits 0 - 7
+            this.subFrameResolution = 0x00FF & rawTimingData;
+        }
+    }
+}
+
+/**
+ * Track chunks (identifier = MTrk) contain a sequence of time-ordered events (MIDI and/or sequencer
+ * specific data), each of which has a delta time value associated with it - i.e. the amount of time
+ * (specified in tickdiv units) since the previous event.
+ * i.e., a track is sequence of 'delta-time / event' pairs
+ * 
+ * Single track files (type 0) only have one track.
+ * Multi-track files (type 1) contain multiple tracks, where the first track is a global tempo track
+ * and subsequent tracks contain the actual note data but not timing events. All trasks are played
+ * together and they all follow the tempo track.
+ * Type 2 midi files allow timing events in any track.
+ */
+export class MidiTrack implements IMidiChunk {
+    constructor(dataView: DataView, dataStartOffset: number) {
+        this.parseFromRawData(dataView, dataStartOffset);
+    }
+
+    public parseFromRawData(dataView: DataView, dataStartOffset: number): void {
+        throw new Error("Method not implemented.");
+    }
 }
 
 /**
  * Basic MIDI file parser based on http://www.somascape.org/midi/tech/mfile.html
  */
 export default class MidiFile {
-    private chunks: IMidiChunk[];
+    public chunks: IMidiChunk[] = [];
 
-    constructor(buffer: ArrayBuffer) {
+    public loadFromBuffer(buffer: ArrayBuffer) {
         this.chunks = [];
 
         let currentPos: number = 0;
         let dataView = new DataView(buffer);
 
         while (currentPos < buffer.byteLength) {
+            // First 8 bytes of the chunk are chunk header
             // Read chunk type (4 bytes);
             const chunkType = getStringFromBuffer(buffer, currentPos, currentPos + 4);
             currentPos += 4;
@@ -120,80 +184,25 @@ export default class MidiFile {
             const chunkLength = dataView.getUint32(currentPos, /* littleEndian: */ false);
             currentPos += 4;
 
-            const rawData = buffer.slice(currentPos, currentPos + chunkLength);
+            console.log(`found chunk ${chunkType}, ${chunkLength}`);
 
-            const headerStart = currentPos;
+            const chunkDataStartOffset = currentPos;
             switch (chunkType) {
                 case 'MThd':
-                    // First 16 bits
-                    const format: MidiFileFormat =
-                        dataView.getUint16(headerStart, /* littleEndian: */ false) as MidiFileFormat;
-
-                    // Second 16 bits
-                    const numTracks: number =
-                        dataView.getUint16(headerStart + 2,  /* littleEndian: */ false);
-
-                    // Third 16 bits
-                    const rawTickDiv = dataView.getUint16(headerStart + 4, /* littleEndian: */ false);
-
-                    // Bit 15 = tickdiv
-                    const timingScheme = rawTickDiv & 0x8000 as MidiTimingScheme;
-
-                    const headerChunk: IMidiHeaderChunk = {
-                        /* Generic chunk properties */
-                        id: chunkType,
-                        length: chunkLength,
-                        rawData: rawData,
-                        /* Header specific properties */
-                        format: format,
-                        rawtickdiv: rawTickDiv,
-                        numTracks: numTracks,
-                        timingScheme: timingScheme
-                    }
-
-                    if (timingScheme == MidiTimingScheme.Metrical) {
-                        // Bits 0-14
-                        headerChunk.pulsesPerQuarterNote = 0x7FFF & rawTickDiv;
-                    } else {
-                        // Timing scheme is timecode.
-                        // Bits 8 - 15, note: number is stored as 2's complement
-                        headerChunk.framesPerSecond = ~(0xFF00 & rawTickDiv) + 1;
-
-                        // Bits 0 - 7
-                        headerChunk.subFrameResolution = 0x00FF & rawTickDiv;
-                    }
-
-                    this.chunks.push(headerChunk);
-
+                    this.chunks.push(new MidiHeader(dataView, chunkDataStartOffset));
                     break;
+
                 case 'MTrk':
                     // This is a track
-                    this.chunks.push({ id: chunkType, length: chunkLength, rawData: rawData });
-
+                    this.chunks.push(new MidiTrack(dataView, chunkDataStartOffset));
                     break;
+
                 default:
                     // Unrecognized chunk, skip
                     break;
             }
             currentPos += chunkLength;
         }
-    }
-
-    public PrettyPrint() {
-        return JSON.stringify(this.chunks, prettyPrintReplacer, 4);
-    }
-}
-
-function prettyPrintReplacer(key: string, value: any) {
-    switch (key) {
-        case 'rawTickDiv':
-            return undefined;
-
-        case 'raw':
-            return undefined;
-
-        default:
-            return value;
     }
 }
 

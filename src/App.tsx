@@ -2,6 +2,7 @@ import React from 'react';
 import './App.css';
 import MidiFilePicker from './components/MidiFilePicker';
 import MidiFile from './model/MidiFile';
+import MidiJsonConverter from './utilities/MidiJsonConverter';
 import { Box, Typography } from '@material-ui/core';
 
 const CREDITS = [
@@ -52,8 +53,9 @@ export default class App extends React.Component<{}, IAppState> {
   }
 
   private onMidiDataLoaded(buffer: ArrayBuffer) {
-    this.midiFile = new MidiFile(buffer);
+    this.midiFile = new MidiFile();
+    this.midiFile.loadFromBuffer(buffer);
 
-    this.setState({ debugMessage: this.midiFile.PrettyPrint() });
+    this.setState({ debugMessage: MidiJsonConverter.GetJson(this.midiFile) });
   }
 }
