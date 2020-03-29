@@ -17,7 +17,7 @@ describe('Multitrack (type 1) MIDI file', () => {
 
         const header = midiFile.chunks[0] as MidiHeader;
         expect(header.fileFormat).toBe(MidiFileFormat.multiTrack);
-        expect(header.numTracks).toBe(1);
+        expect(header.numTracks).toBe(2);
     });
 
 })

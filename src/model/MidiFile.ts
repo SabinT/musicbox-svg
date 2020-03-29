@@ -1,3 +1,5 @@
+import { IMidiEvent, ChannelMessageType, NoteMidiEvent, ControllerMidiEvent as ControllerChangeMidiEvent, ProgramChangeMidiEvent, ChannelPressureMidiEvent, PitchBendMidiEvent, MetaMidiEvent } from "./MidiEvents";
+
 /**
  * A valid MIDI file will contain a single Header chunk followed by one or more Track chunks.
  * Each chunk has an 8 byte header that identifies which type it is, and gives the size of its associated data :
@@ -14,7 +16,7 @@ export interface IMidiChunk {
      * @param dataStartOffset The byte position within `dataView`, where the chunk data (after the
      *      8-byte header) starts.
      */
-    parseFromRawData(dataView: DataView, dataStartOffset: number): void;
+    parseFromRawData(dataView: DataView, dataStartOffset: number, chunkLength: number): void;
 }
 
 export enum MidiFileFormat {
@@ -42,7 +44,10 @@ export enum MidiFileFormat {
 }
 
 export enum MidiTimingScheme {
+    /** Timing of events is determined by beats per minute/pulses per quarter note, etc. */
     metrical = 0,
+
+    /** Absolute time is used in Midi events. */
     timecode = 1,
 }
 
@@ -102,11 +107,11 @@ export class MidiHeader implements IMidiChunk {
      */
     public subFrameResolution?: number;
 
-    constructor(dataView: DataView, startOffset: number) {
-        this.parseFromRawData(dataView, startOffset);
+    constructor(dataView: DataView, startOffset: number, chunkLength: number) {
+        this.parseFromRawData(dataView, startOffset, chunkLength);
     }
 
-    public parseFromRawData(dataView: DataView, startOffset: number) {
+    public parseFromRawData(dataView: DataView, startOffset: number, chunkLength: number) {
         // First 16 bits
         const format: MidiFileFormat =
             dataView.getUint16(startOffset, /* littleEndian: */ false) as MidiFileFormat;
@@ -126,7 +131,7 @@ export class MidiHeader implements IMidiChunk {
         this.numTracks = numTracks;
         this.timingScheme = timingScheme;
 
-        if (timingScheme == MidiTimingScheme.metrical) {
+        if (timingScheme === MidiTimingScheme.metrical) {
             // Bits 0-14
             this.pulsesPerQuarterNote = 0x7FFF & rawTimingData;
         } else {
@@ -153,14 +158,95 @@ export class MidiHeader implements IMidiChunk {
  * Type 2 midi files allow timing events in any track.
  */
 export class MidiTrack implements IMidiChunk {
-    constructor(dataView: DataView, dataStartOffset: number) {
-        this.parseFromRawData(dataView, dataStartOffset);
+    public events: IMidiEvent[] = [];
+
+    constructor(dataView: DataView, dataStartOffset: number, chunkLength: number) {
+        this.parseFromRawData(dataView, dataStartOffset, chunkLength);
     }
 
-    public parseFromRawData(dataView: DataView, dataStartOffset: number): void {
-        throw new Error("Method not implemented.");
+    public parseFromRawData(dataView: DataView, dataStartOffset: number, chunkLength: number): void {
+        let currentOffset = dataStartOffset;
+        let done: boolean = false;
+
+        while (!done && currentOffset < dataStartOffset + chunkLength) {
+            // Read delta time
+            // Top bit being set indicates another byte will follow
+            let deltaTimeCurrentByte = dataView.getUint8(currentOffset++);
+
+            let deltaTime = deltaTimeCurrentByte & 0b01111111
+            while (deltaTimeCurrentByte & 0b10000000) {
+                deltaTimeCurrentByte = dataView.getUint8(currentOffset++);
+                deltaTime = deltaTime << 7 + (deltaTimeCurrentByte & 0b01111111);
+            }
+
+            // Read status byte to find event type
+            const statusByte = dataView.getUint8(currentOffset++);
+            const messageType = (statusByte & 0b11110000) >> 4;
+
+            if (messageType >= ChannelMessageType.NoteOff
+                && messageType <= ChannelMessageType.PitchBend) {
+
+                // This is a channel message
+                let midiEvent;
+                switch (messageType) {
+                    case ChannelMessageType.NoteOff:
+                    case ChannelMessageType.NoteOn:
+                    case ChannelMessageType.PolyphonicPressure:
+                        midiEvent = new NoteMidiEvent(deltaTime);
+                        midiEvent.note = dataView.getUint8(currentOffset++);
+                        midiEvent.velocity = dataView.getUint8(currentOffset++);
+                        break;
+
+                    case ChannelMessageType.Controller:
+                        midiEvent = new ControllerChangeMidiEvent(deltaTime);
+                        midiEvent.controller = dataView.getUint8(currentOffset++);
+                        midiEvent.value = dataView.getUint8(currentOffset++);
+                        break;
+
+                    case ChannelMessageType.ProgramChange:
+                        midiEvent = new ProgramChangeMidiEvent(deltaTime);
+                        midiEvent.program = dataView.getUint8(currentOffset++);
+                        break;
+
+                    case ChannelMessageType.ChannelPressure:
+                        midiEvent = new ChannelPressureMidiEvent(deltaTime);
+                        midiEvent.velocity = dataView.getUint8(currentOffset++);
+                        break;
+
+                    case ChannelMessageType.PitchBend:
+                        midiEvent = new PitchBendMidiEvent(deltaTime);
+                        midiEvent.value = dataView.getUint8(currentOffset++);
+                        break;
+
+                    default:
+                        throw new Error("Unrecognized status byte: " + statusByte);
+                }
+
+                this.events.push(midiEvent);
+            } else if (statusByte >= 0b11110000 && statusByte <= 0b11110111) {
+                // SysEx messages
+                throw new Error('Not yet implemented');
+            } else if (statusByte >= 0b11111000 && statusByte < 0b11111111) {
+                // SysEx realtime messages
+                // Note: 0b11111111 is used as the status byte for "System Reset" in real-time contexts.
+                throw new Error('Not yet implemented');
+            } else if (statusByte === 0b11111111) {
+                // Meta messages: with the general format `FF type length data`
+                let midiEvent = new MetaMidiEvent(deltaTime);
+                midiEvent.metaMessageType = dataView.getUint8(currentOffset++);
+                const length = dataView.getUint8(currentOffset++);
+                midiEvent.metaMessageRawData = dataView.buffer.slice(currentOffset, currentOffset + length);
+                currentOffset += length;
+
+                if (midiEvent.metaMessageType === 0x2F && length === 0) {
+                    // This is the end of track marker.
+                    done = true;
+                }
+            }
+        }
     }
 }
+
 
 /**
  * Basic MIDI file parser based on http://www.somascape.org/midi/tech/mfile.html
@@ -184,17 +270,15 @@ export default class MidiFile {
             const chunkLength = dataView.getUint32(currentPos, /* littleEndian: */ false);
             currentPos += 4;
 
-            console.log(`found chunk ${chunkType}, ${chunkLength}`);
-
             const chunkDataStartOffset = currentPos;
             switch (chunkType) {
                 case 'MThd':
-                    this.chunks.push(new MidiHeader(dataView, chunkDataStartOffset));
+                    this.chunks.push(new MidiHeader(dataView, chunkDataStartOffset, chunkLength));
                     break;
 
                 case 'MTrk':
                     // This is a track
-                    this.chunks.push(new MidiTrack(dataView, chunkDataStartOffset));
+                    this.chunks.push(new MidiTrack(dataView, chunkDataStartOffset, chunkLength));
                     break;
 
                 default:

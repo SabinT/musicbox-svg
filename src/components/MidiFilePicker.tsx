@@ -11,17 +11,15 @@ export interface IMidiFilePickerState {
 }
 
 export default class MidiFilePicker extends React.Component<IMidiFilePickerProps, IMidiFilePickerState>{
-    constructor(props: any){
+    constructor(props: any) {
         super(props);
-        this.state = { };
+        this.state = {};
     }
 
     private dropHandler(ev: React.DragEvent) {
-        console.log('File(s) dropped');
-    
         // Prevent default behavior (Prevent file from being opened)
         ev.preventDefault();
-    
+
         if (ev.dataTransfer.items) {
             // Use DataTransferItemList interface to access the file(s)
             for (let i = 0; i < ev.dataTransfer.items.length; i++) {
@@ -32,8 +30,6 @@ export default class MidiFilePicker extends React.Component<IMidiFilePickerProps
                         this.openFile(file);
                         break;
                     }
-                } else {
-                    console.log('Dropped item is not a file.');
                 }
             }
         } else {
@@ -53,14 +49,12 @@ export default class MidiFilePicker extends React.Component<IMidiFilePickerProps
     }
 
     private openFile(file: File) {
-        this.setState({fileName: file.name});
+        this.setState({ fileName: file.name });
 
         var reader = new FileReader();
         reader.onload = (e) => {
             if (this.props.onFileLoaded && reader.result instanceof ArrayBuffer) {
                 this.props.onFileLoaded(reader.result);
-            } else {
-                console.log('No handler registered for file load callback.');
             }
         }
 
@@ -73,21 +67,21 @@ export default class MidiFilePicker extends React.Component<IMidiFilePickerProps
         ev.preventDefault();
     }
 
-    render(){
+    render() {
         const message: JSX.Element = this.state.fileName
-            ? <p>{ this.state.fileName } loaded. Drag another file to replace.</p>
+            ? <p>{this.state.fileName} loaded. Drag another file to replace.</p>
             : <p>No file loaded, drag and drop a file here.</p>;
 
         return (
-            <Box id={ 'drop_zone' }
-                onDrop={ (ev) => this.dropHandler(ev) }
-                onDragOver={ (ev) => this.dragOverHandler(ev) }
+            <Box id={'drop_zone'}
+                onDrop={(ev) => this.dropHandler(ev)}
+                onDragOver={(ev) => this.dragOverHandler(ev)}
             >
-                { message }
+                {message}
                 <div>
-                    Or <input type="file" id="myfile" name="myfile" onChange={ (ev) => this.handleInputChange(ev) }/>
+                    Or <input type="file" id="myfile" name="myfile" onChange={(ev) => this.handleInputChange(ev)} />
                 </div>
             </Box>
-        )  
+        )
     }
 }
