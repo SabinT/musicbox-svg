@@ -1,3 +1,4 @@
+import { MidiNote } from "./MidiConstants";
 
 enum MidiEventType {
     /**
@@ -139,7 +140,7 @@ export class ChannelMidiEvent extends BaseMidiEvent {
 }
 
 export class NoteMidiEvent extends ChannelMidiEvent {
-    public note: number = 0;
+    public note: MidiNote = 0;
     public velocity: number = 0;
 }
 
@@ -162,7 +163,6 @@ export class PitchBendMidiEvent extends ChannelMidiEvent {
 
 export class MetaMidiEvent extends BaseMidiEvent {
     public metaMessageType: number = 0;
-    public metaMessageRawData?: ArrayBuffer;
 
     public getMidiEventType() {
         return MidiEventType.Meta;

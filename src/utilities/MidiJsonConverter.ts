@@ -1,5 +1,6 @@
 import MidiFile, { MidiTimingScheme, MidiFileFormat } from '../model/MidiFile';
 import { ChannelMessageType } from '../model/MidiEvents';
+import { MidiNote } from '../model/MidiConstants';
 
 export default class MidiJsonConverter {
     public static GetJson(midiFile: MidiFile): string {
@@ -7,12 +8,17 @@ export default class MidiJsonConverter {
     }
 }
 
+/**
+ * Used to hide some properties, and to make others more readable (e.g., enums as strings)
+ */
 function prettyPrintReplacer(key: string, value: any) {
     switch (key) {
-        case 'rawTickDiv':
+        // Timing data is exposed as parsed properties, no need to output raw ArrayBuffer
+        case 'rawTimingData':
             return undefined;
 
-        case 'raw':
+        // Avoid serializing header references in MIDI tracks
+        case 'header':
             return undefined;
 
         case 'timingScheme':
@@ -23,6 +29,9 @@ function prettyPrintReplacer(key: string, value: any) {
 
         case 'channelMessageType':
             return ChannelMessageType[value];
+
+        case 'note':
+            return MidiNote[value];
 
         default:
             return value;

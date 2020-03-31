@@ -1,5 +1,6 @@
 import { IMidiEvent, ChannelMessageType, NoteMidiEvent, ControllerMidiEvent as ControllerChangeMidiEvent, ProgramChangeMidiEvent, ChannelPressureMidiEvent, PitchBendMidiEvent, MetaMidiEvent } from "./MidiEvents";
 import { stat } from "fs";
+import { MIDIMetaMessageType } from "./MidiConstants";
 
 /**
  * A valid MIDI file will contain a single Header chunk followed by one or more Track chunks.
@@ -266,12 +267,15 @@ export class MidiTrack implements IMidiChunk {
                 midiEvent.metaMessageType = dataView.getUint8(currentOffset++);
 
                 const length = dataView.getUint8(currentOffset++);
-                if (midiEvent.metaMessageType === 0x2F && length === 0) {
+                if (midiEvent.metaMessageType === MIDIMetaMessageType.EndOfTrack && length === 0) {
                     // This is the end of track marker.
                     done = true;
                 }
 
-                if (midiEvent.metaMessageType === 0x51 && length === 3 && this.header.pulsesPerQuarterNote) {
+                if (midiEvent.metaMessageType === MIDIMetaMessageType.SetTempo
+                    && length === 3
+                    && usesMetricalTiming
+                    && this.header.pulsesPerQuarterNote) {
                     // Tempo change
                     const microsecondsPerQuarterNote =
                         (dataView.getUint16(currentOffset) << 8) +
@@ -279,7 +283,12 @@ export class MidiTrack implements IMidiChunk {
                     secondsPerTick = microsecondsPerQuarterNote / (1000 * 1000 * this.header.pulsesPerQuarterNote);
                 }
 
-                midiEvent.metaMessageRawData = dataView.buffer.slice(currentOffset, currentOffset + length);
+                if (usesMetricalTiming) {
+                    midiEvent.absoluteTimeInSeconds = cumulativeSeconds;
+                }
+
+                this.events.push(midiEvent);
+
                 currentOffset += length;
             }
         }
