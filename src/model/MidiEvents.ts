@@ -1,6 +1,6 @@
 import { MidiNote } from "./MidiConstants";
 
-enum MidiEventType {
+export enum MidiEventType {
     /**
      * First byte of Midi event being `0x8n - 0xEn` indicates this type (4-bit n = channel number)
      * This type includes "music" events that includes note on/off and controller change.
@@ -93,7 +93,7 @@ export enum ChannelMessageType {
      * Data: `0kkkkkkk 0vvvvvvv`
      * `kkkkkkk` is the key (note) number. `vvvvvvv` is the pressure value.
      */
-    PolyphonicPressure = 0b1011,
+    PolyphonicPressure = 0b1010,
 
     /**
      * This message is sent when a controller value changes.

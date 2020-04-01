@@ -4,6 +4,8 @@ import MidiFilePicker from './components/MidiFilePicker';
 import MidiFile from './model/MidiFile';
 import MidiJsonConverter from './utilities/MidiJsonConverter';
 import { Box, Typography } from '@material-ui/core';
+import { MusicBoxSvg } from './components/MusicBoxSvg';
+import { FifteenNoteMusicBoxProfile } from './model/MusicBox';
 
 const CREDITS = [
   { asset: 'Midi Icon', by: 'Midi Synthesizer by Iconic from the Noun Project' }
@@ -11,6 +13,7 @@ const CREDITS = [
 
 interface IAppState {
   debugMessage: string;
+  midiDataAvailable: boolean;
 }
 
 export default class App extends React.Component<{}, IAppState> {
@@ -20,7 +23,8 @@ export default class App extends React.Component<{}, IAppState> {
     super(props);
 
     this.state = {
-      debugMessage: ''
+      debugMessage: '',
+      midiDataAvailable: false
     }
   }
 
@@ -42,6 +46,14 @@ export default class App extends React.Component<{}, IAppState> {
         </header>
         <MidiFilePicker
           onFileLoaded={(buffer) => this.onMidiDataLoaded(buffer)} />
+        {
+          this.state.midiDataAvailable && this.midiFile &&
+          <Box>
+            <MusicBoxSvg
+              musicBoxProfile={FifteenNoteMusicBoxProfile}
+              midiFile={this.midiFile} />
+          </Box>
+        }
         <Box className='App-debug-message-box' id='App-debug-message-box-id'>
           <Typography align={'left'}>
             {this.state.debugMessage}
@@ -56,6 +68,9 @@ export default class App extends React.Component<{}, IAppState> {
     this.midiFile = new MidiFile();
     this.midiFile.loadFromBuffer(buffer);
 
-    this.setState({ debugMessage: MidiJsonConverter.GetJson(this.midiFile) });
+    this.setState({
+      debugMessage: MidiJsonConverter.GetJson(this.midiFile),
+      midiDataAvailable: true
+    });
   }
 }

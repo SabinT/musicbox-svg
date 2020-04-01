@@ -7,7 +7,6 @@
  */
 export enum MidiNote {
     None = -1,
-    // n1 = -1 octave
     Cn1 = 0,
     Csn1 = 1,
     Dn1 = 2,

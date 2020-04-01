@@ -336,6 +336,22 @@ export default class MidiFile {
             currentPos += chunkLength;
         }
     }
+
+    public getHeader(): MidiHeader {
+        if (this.chunks && this.chunks.length > 0) {
+            return this.chunks[0] as MidiHeader;
+        }
+
+        throw new Error('No header found!');
+    }
+
+    public getTracks(): MidiTrack[] {
+        if (this.chunks) {
+            return this.chunks.filter(x => x instanceof MidiTrack) as MidiTrack[];
+        }
+
+        return [];
+    }
 }
 
 function getStringFromBuffer(buffer: ArrayBuffer, start: number, end: number): string {
