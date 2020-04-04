@@ -1,5 +1,4 @@
 import { IMidiEvent, ChannelMessageType, NoteMidiEvent, ControllerMidiEvent as ControllerChangeMidiEvent, ProgramChangeMidiEvent, ChannelPressureMidiEvent, PitchBendMidiEvent, MetaMidiEvent } from "./MidiEvents";
-import { stat } from "fs";
 import { MIDIMetaMessageType } from "./MidiConstants";
 
 /**

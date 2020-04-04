@@ -1,6 +1,7 @@
 import './MidiFilePicker.css';
 import * as React from 'react';
 import Box from '@material-ui/core/Box/Box';
+import { Paper } from '@material-ui/core';
 
 export interface IMidiFilePickerProps {
     onFileLoaded?(buffer: ArrayBuffer): void;
@@ -70,10 +71,10 @@ export default class MidiFilePicker extends React.Component<IMidiFilePickerProps
     render() {
         const message: JSX.Element = this.state.fileName
             ? <p>{this.state.fileName} loaded. Drag another file to replace.</p>
-            : <p>No file loaded, drag and drop a file here.</p>;
+            : <p>No file loaded, drag and drop a file here to load.</p>;
 
         return (
-            <Box id={'drop_zone'}
+            <Paper className='Midi-File-Picker' id={'drop_zone'}
                 onDrop={(ev) => this.dropHandler(ev)}
                 onDragOver={(ev) => this.dragOverHandler(ev)}
             >
@@ -81,7 +82,7 @@ export default class MidiFilePicker extends React.Component<IMidiFilePickerProps
                 <div>
                     Or <input type="file" id="myfile" name="myfile" onChange={(ev) => this.handleInputChange(ev)} />
                 </div>
-            </Box>
+            </Paper>
         )
     }
 }

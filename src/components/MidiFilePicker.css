@@ -1,3 +1,7 @@
 #drop_zone {
     border: 1px dotted gray;
 }
+
+.Midi-File-Picker {
+    padding: 8px;
+}

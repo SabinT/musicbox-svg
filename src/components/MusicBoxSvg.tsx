@@ -1,7 +1,7 @@
 import { IMusicBoxProfile } from "../model/MusicBox";
-import MidiFile, { MidiHeader, MidiTrack, MidiFileFormat } from "../model/MidiFile";
+import MidiFile, { MidiTrack, MidiFileFormat } from "../model/MidiFile";
 import * as React from 'react';
-import { MidiEventType, NoteMidiEvent, ChannelMessageType } from "../model/MidiEvents";
+import { NoteMidiEvent, ChannelMessageType } from "../model/MidiEvents";
 import { MidiNote } from "../model/MidiConstants";
 
 /**
@@ -23,11 +23,8 @@ export interface IMusicBoxSvgProps {
 }
 
 export function MusicBoxSvg(props: IMusicBoxSvgProps) {
-    const mmPerSec: number = props.musicBoxProfile.millimetersPerSecond;
     const supportedNotes = props.musicBoxProfile.supportedNotes;
     const supportedNoteSet: Set<MidiNote> = new Set(supportedNotes);
-    const lowestNote: MidiNote = Math.min(...supportedNotes);
-    const highestNote: MidiNote = Math.max(...supportedNotes);
     const noteHeight: number =
         props.musicBoxProfile.contentWidthMm /
         props.musicBoxProfile.supportedNotes.length;
@@ -36,7 +33,7 @@ export function MusicBoxSvg(props: IMusicBoxSvgProps) {
 
     // An index of the note's position from the bottom of the music box sheet.
     const noteIndices: Map<MidiNote, number> = new Map<MidiNote, number>();
-    [...supportedNotes].sort().map((note, i) => {
+    [...supportedNotes].sort().forEach((note, i) => {
         noteIndices.set(note, supportedNotes.length - i);
     });
 
@@ -58,7 +55,7 @@ export function MusicBoxSvg(props: IMusicBoxSvgProps) {
     const supportedEvents: NoteMidiEvent[] = [];
     const unsupportedEvents: NoteMidiEvent[] = [];
     let lastAbsoluteTime: number = 0;
-    noteOnEvents.map(e => {
+    noteOnEvents.forEach(e => {
         if (supportedNoteSet.has((e.note))) {
             supportedEvents.push(e);
             if (e.absoluteTimeInSeconds > lastAbsoluteTime) {
@@ -81,10 +78,9 @@ export function MusicBoxSvg(props: IMusicBoxSvgProps) {
                     height={totalHeight}
                     fill={'none'}
                     stroke={'black'} />
-                {noteOnEvents.map(noteOnEvent => createCircle(
+                {noteOnEvents.map((noteOnEvent, i) => createCircle(
+                    i,
                     noteOnEvent,
-                    lowestNote,
-                    highestNote,
                     noteIndices,
                     noteHeight,
                     noteOffsetX,
@@ -96,9 +92,8 @@ export function MusicBoxSvg(props: IMusicBoxSvgProps) {
 }
 
 function createCircle(
+    key: number,
     noteOnEvent: NoteMidiEvent,
-    lowestNote: MidiNote,
-    highestNote: MidiNote,
     noteIndices: Map<MidiNote, number>,
     noteHeight: number,
     noteOffsetX: number,
@@ -107,7 +102,7 @@ function createCircle(
 
     const noteIndex = noteIndices.get(noteOnEvent.note) || 0;
 
-    return <circle
+    return <circle key={key}
         cx={noteOffsetX + noteOnEvent.absoluteTimeInSeconds * musicBoxProfile.millimetersPerSecond}
         cy={noteOffsetY + noteIndex * noteHeight + "mm"}
         r={musicBoxProfile.holeDiameterMm / 2 + "mm"}
