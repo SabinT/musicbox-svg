@@ -1,36 +1,39 @@
-.App {
-  text-align: center;
+@import "~normalize.css";
+@import "~@blueprintjs/core/lib/css/blueprint.css";
+@import "~@blueprintjs/icons/lib/css/blueprint-icons.css";
+
+.mb-appRoot {
+  max-width: 900px;;
+  margin: 16px;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100px;
+.mb-settingsArea {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
 }
 
-.App-link {
-  color: #61dafb;
+.mb-filePicker-container {
+  min-width: 300px;
+  padding: 8px;
+  flex: 1;
 }
 
-.App-debug-message-box#App-debug-message-box-id {
-    background: #f4f4f4;
-    border: 1px solid #ddd;
-    border-left: 3px solid #f36d33;
-    color: #666;
-    page-break-inside: avoid;
-    font-family: monospace;
-    font-size: 15px;
-    line-height: 1.6;
-    margin-bottom: 1.6em;
-    max-width: 100%;
-    overflow: auto;
-    padding: 1em 1.5em;
-    display: block;
-    word-wrap: break-word;
-    white-space: pre;
+.mb-paperSettings-container {
+  min-width: 300px;
+  padding: 8px;
+  flex: 1;
+}
+
+.mb-musicBox-preview {
+  padding: 16px;
+  margin: 8px;
+}
+
+.mb-debugMessage-Container {
+  padding: 8px;
+}
+
+.mb-debugMessage {
+  white-space: pre;
+  max-height: 400px;
+  overflow-y: auto;
 }

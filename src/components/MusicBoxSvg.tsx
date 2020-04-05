@@ -67,9 +67,9 @@ export function MusicBoxSvg(props: IMusicBoxSvgProps) {
     });
 
     const endPaddingMm = 10;
-    const noteOffsetX = 40;
+    const startPaddingMm = 10;
 
-    const totalWidth = lastAbsoluteTime * props.musicBoxProfile.millimetersPerSecond + endPaddingMm + "mm";
+    const totalWidth = startPaddingMm + endPaddingMm + lastAbsoluteTime * props.musicBoxProfile.millimetersPerSecond + endPaddingMm + "mm";
     const totalHeight = props.musicBoxProfile.paperWidthMm + "mm";
     return (
         <svg width={totalWidth} height={totalHeight}>
@@ -83,7 +83,7 @@ export function MusicBoxSvg(props: IMusicBoxSvgProps) {
                     noteOnEvent,
                     noteIndices,
                     noteHeight,
-                    noteOffsetX,
+                    startPaddingMm,
                     noteOffsetY,
                     props.musicBoxProfile))}
             </g>
@@ -103,7 +103,7 @@ function createCircle(
     const noteIndex = noteIndices.get(noteOnEvent.note) || 0;
 
     return <circle key={key}
-        cx={noteOffsetX + noteOnEvent.absoluteTimeInSeconds * musicBoxProfile.millimetersPerSecond}
+        cx={noteOffsetX + noteOnEvent.absoluteTimeInSeconds * musicBoxProfile.millimetersPerSecond + "mm"}
         cy={noteOffsetY + noteIndex * noteHeight + "mm"}
         r={musicBoxProfile.holeDiameterMm / 2 + "mm"}
         fill={'none'}

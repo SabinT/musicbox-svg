@@ -3,11 +3,11 @@ import './App.css';
 import MidiFilePicker from './components/MidiFilePicker';
 import MidiFile from './model/MidiFile';
 import MidiJsonConverter from './utilities/MidiJsonConverter';
-import { Box, Typography, CssBaseline, Container, Grid, Paper } from '@material-ui/core';
 import { MusicBoxSvg } from './components/MusicBoxSvg';
 import { BuiltInProfiles, IMusicBoxProfile } from './model/MusicBox';
 import { MusicBoxProfileEditor } from './components/MusicBoxProfileEditor';
 
+import { Card, Collapse, Pre, Button } from '@blueprintjs/core';
 
 const CREDITS = [
   { asset: 'Midi Icon', by: 'Midi Synthesizer by Iconic from the Noun Project' }
@@ -17,6 +17,7 @@ interface IAppState {
   debugMessage: string;
   midiDataAvailable: boolean;
   musicBoxProfile: IMusicBoxProfile;
+  showDebugMessage: boolean;
 }
 
 export default class App extends React.Component<{}, IAppState> {
@@ -28,7 +29,8 @@ export default class App extends React.Component<{}, IAppState> {
     this.state = {
       debugMessage: '',
       midiDataAvailable: false,
-      musicBoxProfile: BuiltInProfiles['fifteenNote']
+      musicBoxProfile: BuiltInProfiles['fifteenNote'],
+      showDebugMessage: false
     };
   }
 
@@ -42,41 +44,39 @@ export default class App extends React.Component<{}, IAppState> {
     })
 
     return (
-      <>
-        <CssBaseline />
-        <Container maxWidth="lg">
-          <div className="App">
-            <header className="App-header">
-              <p>
-                Upload a MIDI file.
-              </p>
-            </header>
-            <Grid container spacing={2}>
-              <Grid item md>
-                <MidiFilePicker
-                  onFileLoaded={(buffer) => this.onMidiDataLoaded(buffer)} />
-              </Grid>
-              <Grid item md>
-                <MusicBoxProfileEditor
-                  profile={this.state.musicBoxProfile}
-                  onChange={(profile) => this.setState({ ...this.state, musicBoxProfile: profile })} />
-              </Grid>
-            </Grid>
-            {
-              this.state.midiDataAvailable && this.midiFile &&
-              <MusicBoxSvg
-                musicBoxProfile={this.state.musicBoxProfile}
-                midiFile={this.midiFile} />
-            }
-            <Box className='App-debug-message-box' id='App-debug-message-box-id'>
-              <Typography align={'left'}>
-                {this.state.debugMessage}
-              </Typography>
-            </Box>
-            {credits}
+      <div className='mb-appRoot'>
+        <div className='mb-settingsArea'>
+          <div className='mb-filePicker-container'>
+            <MidiFilePicker
+              onFileLoaded={(buffer) => this.onMidiDataLoaded(buffer)} />
           </div>
-        </Container>
-      </>
+          <div className='mb-paperSettings-container'>
+            <MusicBoxProfileEditor
+              profile={this.state.musicBoxProfile}
+              onChange={(profile) => this.setState({ ...this.state, musicBoxProfile: profile })} />
+          </div>
+        </div>
+        {
+          this.state.midiDataAvailable && this.midiFile &&
+          <div className='mb-musicBox-preview'>
+            <MusicBoxSvg
+              musicBoxProfile={this.state.musicBoxProfile}
+              midiFile={this.midiFile} />
+          </div>
+        }
+        <div className='mb-debugMessage-Container'>
+          <Button onClick={() => this.toggleDebugMessage()}>
+            {this.state.showDebugMessage ? "Hide" : "Show"} MIDI contents
+          </Button>
+          <Collapse isOpen={this.state.showDebugMessage}>
+            <Pre className='mb-debugMessage'>{this.state.debugMessage}</Pre>
+          </Collapse>
+          <Card>
+            Credits<br />
+            {credits}
+          </Card>
+        </div>
+      </div>
     );
   }
 
@@ -88,5 +88,9 @@ export default class App extends React.Component<{}, IAppState> {
       debugMessage: MidiJsonConverter.GetJson(this.midiFile),
       midiDataAvailable: true
     });
+  }
+
+  private toggleDebugMessage(): void {
+    this.setState({ ...this.state, showDebugMessage: !this.state.showDebugMessage });
   }
 }

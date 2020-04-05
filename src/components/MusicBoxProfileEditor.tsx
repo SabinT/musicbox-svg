@@ -1,25 +1,14 @@
 import { IMusicBoxProfile } from "../model/MusicBox";
 import { useState } from "react";
-import { TextField, Button, makeStyles, Paper } from "@material-ui/core";
 import React from "react";
+import { Card, NumericInput, Button, Label } from "@blueprintjs/core";
 
 export interface IMusicBoxProfileEditorProps {
     profile: IMusicBoxProfile;
     onChange(profile: IMusicBoxProfile): void;
 }
 
-const useStyles = makeStyles((theme) => ({
-    root: {
-        '& .MuiTextField-root': {
-            margin: theme.spacing(1),
-            width: '25ch',
-        },
-    },
-}));
-
 export function MusicBoxProfileEditor(props: IMusicBoxProfileEditorProps) {
-    const classes = useStyles();
-
     const [profile, setProfile] = useState(props.profile);
 
     const handleClick = () => {
@@ -29,20 +18,20 @@ export function MusicBoxProfileEditor(props: IMusicBoxProfileEditorProps) {
     }
 
     return (
-        <Paper className={classes.root}>
-            <TextField
-                label='Paper width (mm)'
-                variant='outlined'
-                type='number'
-                value={profile.paperWidthMm}
-                onChange={(ev) => { setProfile({ ...profile, paperWidthMm: parseInt(ev.target.value) }) }} />
-            <TextField
-                label='Content width (mm)'
-                variant='outlined'
-                type='number'
-                value={profile.contentWidthMm}
-                onChange={(ev) => { setProfile({ ...profile, contentWidthMm: parseInt(ev.target.value) }) }} />
+        <Card>
+            <Label>
+                Paper width (mm)
+                <NumericInput
+                    value={profile.paperWidthMm}
+                    onValueChange={(num, str) => { setProfile({ ...profile, paperWidthMm: num }) }} />
+            </Label>
+            <Label>
+                Content width (mm)
+                <NumericInput
+                    value={profile.contentWidthMm}
+                    onValueChange={(num, str) => { setProfile({ ...profile, contentWidthMm: num }) }} />
+            </Label>
             <Button onClick={handleClick}>Apply</Button>
-        </Paper>
+        </Card>
     );
 }

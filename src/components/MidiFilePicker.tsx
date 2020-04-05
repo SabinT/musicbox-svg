@@ -1,7 +1,6 @@
 import './MidiFilePicker.css';
 import * as React from 'react';
-import Box from '@material-ui/core/Box/Box';
-import { Paper } from '@material-ui/core';
+import { Button, Card, Elevation, FileInput, Label } from "@blueprintjs/core";
 
 export interface IMidiFilePickerProps {
     onFileLoaded?(buffer: ArrayBuffer): void;
@@ -36,15 +35,18 @@ export default class MidiFilePicker extends React.Component<IMidiFilePickerProps
         } else {
             // Use DataTransfer interface to access the file(s)
             for (let i = 0; i < ev.dataTransfer.files.length; i++) {
-                this.openFile(ev.dataTransfer.files[i]);
-                break;
+                const file = ev.dataTransfer.files[i];
+                if (file) {
+                    this.openFile(ev.dataTransfer.files[i]);
+                    break;
+                }
             }
         }
     }
 
     private handleInputChange(event: React.FormEvent<HTMLInputElement>) {
         const target = event.currentTarget;
-        if (target.files) {
+        if (target.files && target.files.length > 0 && target.files[0]) {
             this.openFile(target.files[0]);
         }
     }
@@ -69,20 +71,18 @@ export default class MidiFilePicker extends React.Component<IMidiFilePickerProps
     }
 
     render() {
-        const message: JSX.Element = this.state.fileName
-            ? <p>{this.state.fileName} loaded. Drag another file to replace.</p>
-            : <p>No file loaded, drag and drop a file here to load.</p>;
-
         return (
-            <Paper className='Midi-File-Picker' id={'drop_zone'}
+            <Card id={'drop_zone'}
                 onDrop={(ev) => this.dropHandler(ev)}
                 onDragOver={(ev) => this.dragOverHandler(ev)}
             >
-                {message}
                 <div>
-                    Or <input type="file" id="myfile" name="myfile" onChange={(ev) => this.handleInputChange(ev)} />
+                    <Label>
+                        Drag and drop, or pick a file...
+                        <FileInput text={this.state.fileName || 'No file loaded...'} onInputChange={(ev) => this.handleInputChange(ev)} />
+                    </Label>
                 </div>
-            </Paper>
+            </Card>
         )
     }
 }

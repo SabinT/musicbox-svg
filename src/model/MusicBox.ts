@@ -43,7 +43,7 @@ export const BuiltInProfiles: { [key: string]: IMusicBoxProfile } = {
             MidiNote.A5, MidiNote.B5, MidiNote.C6
         ],
         holeDiameterMm: 1.8,
-        millimetersPerSecond: 80
+        millimetersPerSecond: 10
     }
 
     // TODO
