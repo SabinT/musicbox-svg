@@ -20,75 +20,99 @@ export interface IMusicBoxSvgProps {
     musicBoxProfile: IMusicBoxProfile;
 
     formatting?: IMusicBoxSvgFormatting;
+
+    /** The HTML element id for the <svg> element. */
+    elementId: string;
 }
 
-export function MusicBoxSvg(props: IMusicBoxSvgProps) {
-    const supportedNotes = props.musicBoxProfile.supportedNotes;
-    const supportedNoteSet: Set<MidiNote> = new Set(supportedNotes);
-    const noteHeight: number =
-        props.musicBoxProfile.contentWidthMm /
-        props.musicBoxProfile.supportedNotes.length;
-    const noteOffsetY: number =
-        (props.musicBoxProfile.paperWidthMm - props.musicBoxProfile.contentWidthMm) / 2;
+export default class MusicBoxSvg extends React.Component<IMusicBoxSvgProps, {}> {
+    private svgRef: SVGElement | null = null;
 
-    // An index of the note's position from the bottom of the music box sheet.
-    const noteIndices: Map<MidiNote, number> = new Map<MidiNote, number>();
-    [...supportedNotes].sort().forEach((note, i) => {
-        noteIndices.set(note, supportedNotes.length - i);
-    });
-
-    // Find the first actionable MIDI track.
-    const midiHeader = props.midiFile.getHeader();
-    const midiTracks = props.midiFile.getTracks();
-    if (!midiTracks) {
-        return <div>No tracks found!</div>;
+    constructor(props: IMusicBoxSvgProps) {
+        super(props);
     }
 
-    const musicTrack: MidiTrack = midiHeader.fileFormat === MidiFileFormat.multiTrack
-        ? midiTracks[1] // First track is tempor track for type 1 MIDI files
-        : midiTracks[0];
+    public render() {
+        const supportedNotes = this.props.musicBoxProfile.supportedNotes;
+        const supportedNoteSet: Set<MidiNote> = new Set(supportedNotes);
+        const noteHeight: number =
+            this.props.musicBoxProfile.contentWidthMm /
+            this.props.musicBoxProfile.supportedNotes.length;
+        const noteOffsetY: number =
+            (this.props.musicBoxProfile.paperWidthMm - this.props.musicBoxProfile.contentWidthMm) / 2;
 
-    const noteOnEvents: NoteMidiEvent[] = musicTrack.events.filter(
-        e => e instanceof NoteMidiEvent &&
-            (e as NoteMidiEvent).channelMessageType === ChannelMessageType.NoteOn) as NoteMidiEvent[];
+        // An index of the note's position from the bottom of the music box sheet.
+        const noteIndices: Map<MidiNote, number> = new Map<MidiNote, number>();
+        [...supportedNotes].sort().forEach((note, i) => {
+            noteIndices.set(note, supportedNotes.length - i);
+        });
 
-    const supportedEvents: NoteMidiEvent[] = [];
-    const unsupportedEvents: NoteMidiEvent[] = [];
-    let lastAbsoluteTime: number = 0;
-    noteOnEvents.forEach(e => {
-        if (supportedNoteSet.has((e.note))) {
-            supportedEvents.push(e);
-            if (e.absoluteTimeInSeconds > lastAbsoluteTime) {
-                lastAbsoluteTime = e.absoluteTimeInSeconds;
-            }
-        } else {
-            unsupportedEvents.push(e);
+        // Find the first actionable MIDI track.
+        const midiHeader = this.props.midiFile.getHeader();
+        const midiTracks = this.props.midiFile.getTracks();
+        if (!midiTracks) {
+            return <div>No tracks found!</div>;
         }
-    });
 
-    const endPaddingMm = 10;
-    const startPaddingMm = 10;
+        const musicTrack: MidiTrack = midiHeader.fileFormat === MidiFileFormat.multiTrack
+            ? midiTracks[1] // First track is tempor track for type 1 MIDI files
+            : midiTracks[0];
 
-    const totalWidth = startPaddingMm + endPaddingMm + lastAbsoluteTime * props.musicBoxProfile.millimetersPerSecond + endPaddingMm + "mm";
-    const totalHeight = props.musicBoxProfile.paperWidthMm + "mm";
-    return (
-        <svg width={totalWidth} height={totalHeight}>
-            <g>
-                <rect width={totalWidth}
-                    height={totalHeight}
-                    fill={'none'}
-                    stroke={'black'} />
-                {noteOnEvents.map((noteOnEvent, i) => createCircle(
-                    i,
-                    noteOnEvent,
-                    noteIndices,
-                    noteHeight,
-                    startPaddingMm,
-                    noteOffsetY,
-                    props.musicBoxProfile))}
-            </g>
-        </svg>
-    );
+        const noteOnEvents: NoteMidiEvent[] = musicTrack.events.filter(
+            e => e instanceof NoteMidiEvent &&
+                (e as NoteMidiEvent).channelMessageType === ChannelMessageType.NoteOn) as NoteMidiEvent[];
+
+        const supportedEvents: NoteMidiEvent[] = [];
+        const unsupportedEvents: NoteMidiEvent[] = [];
+        let lastAbsoluteTime: number = 0;
+        noteOnEvents.forEach(e => {
+            if (supportedNoteSet.has((e.note))) {
+                supportedEvents.push(e);
+                if (e.absoluteTimeInSeconds > lastAbsoluteTime) {
+                    lastAbsoluteTime = e.absoluteTimeInSeconds;
+                }
+            } else {
+                unsupportedEvents.push(e);
+            }
+        });
+
+        const endPaddingMm = 10;
+        const startPaddingMm = 10;
+
+        const totalWidth = startPaddingMm + endPaddingMm + lastAbsoluteTime * this.props.musicBoxProfile.millimetersPerSecond + endPaddingMm + "mm";
+        const totalHeight = this.props.musicBoxProfile.paperWidthMm + "mm";
+        return (
+            <svg width={totalWidth}
+                height={totalHeight}
+                ref={(el) => { this.svgRef = el; }}
+                // Namespace required to tell browsers to render downloaded files instead of displaying xml.
+                xmlns={'http://www.w3.org/2000/svg'}>
+
+                <g>
+                    <rect width={totalWidth}
+                        height={totalHeight}
+                        fill={'none'}
+                        stroke={'black'} />
+                    {noteOnEvents.map((noteOnEvent, i) => createCircle(
+                        i,
+                        noteOnEvent,
+                        noteIndices,
+                        noteHeight,
+                        startPaddingMm,
+                        noteOffsetY,
+                        this.props.musicBoxProfile))}
+                </g>
+            </svg>
+        );
+    }
+
+    public getSvgData(): string | null {
+        if (this.svgRef) {
+            return this.svgRef.outerHTML;
+        }
+
+        return null;
+    }
 }
 
 function createCircle(

@@ -16,6 +16,10 @@ export default class MidiFilePicker extends React.Component<IMidiFilePickerProps
         this.state = {};
     }
 
+    public getCurrentFilename(): string | undefined {
+        return this.state.fileName;
+    }
+
     private dropHandler(ev: React.DragEvent) {
         // Prevent default behavior (Prevent file from being opened)
         ev.preventDefault();
