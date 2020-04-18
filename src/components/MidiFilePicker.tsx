@@ -1,9 +1,12 @@
 import './MidiFilePicker.css';
 import * as React from 'react';
-import { Button, Card, Elevation, FileInput, Label } from "@blueprintjs/core";
+import { Card, FileInput, NonIdealState, H4, Callout } from "@blueprintjs/core";
+import MidiFile from '../model/MidiFile';
+import { MidiNote } from '../model/MidiConstants';
+import MidiNoteHistogram from './MidiNoteHistogram';
 
 export interface IMidiFilePickerProps {
-    onFileLoaded?(buffer: ArrayBuffer): void;
+    onFileLoaded?(midiFile: MidiFile): void;
 }
 
 export interface IMidiFilePickerState {
@@ -11,6 +14,8 @@ export interface IMidiFilePickerState {
 }
 
 export default class MidiFilePicker extends React.Component<IMidiFilePickerProps, IMidiFilePickerState>{
+    private midiFile?: MidiFile;
+
     constructor(props: any) {
         super(props);
         this.state = {};
@@ -59,9 +64,12 @@ export default class MidiFilePicker extends React.Component<IMidiFilePickerProps
         this.setState({ fileName: file.name });
 
         var reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = () => {
             if (this.props.onFileLoaded && reader.result instanceof ArrayBuffer) {
-                this.props.onFileLoaded(reader.result);
+                this.midiFile = new MidiFile();
+                this.midiFile.loadFromBuffer(reader.result);
+
+                this.props.onFileLoaded(this.midiFile);
             }
         }
 
@@ -75,17 +83,44 @@ export default class MidiFilePicker extends React.Component<IMidiFilePickerProps
     }
 
     render() {
+        const action = !!this.midiFile
+            ? <FileInput text={this.state.fileName} buttonText={'Replace'} onInputChange={(ev) => this.handleInputChange(ev)} />
+            : <FileInput text={'Select a MIDI file'} onInputChange={(ev) => this.handleInputChange(ev)} />;
+
+        let content: JSX.Element;
+
+        if (this.midiFile) {
+            const stats = this.midiFile.midiStats;
+
+            const tempoInfo = 'Tempo: ' +
+                stats.tempos.map(x => parseFloat(x.toFixed(2))).join(', ') + ' bpm';
+
+            content =
+                <>
+                    <H4>{this.state.fileName}</H4>
+                    {action}
+                    <Callout>
+                        <p>{tempoInfo}, {stats.lastNoteOnEventInSeconds} seconds </p>
+                        <p>High Note: {MidiNote[stats.highNote]}, Low Note: {MidiNote[stats.lowNote]} </p>
+                    </Callout>
+                    <MidiNoteHistogram width={320} height={80} midiStats={stats} />
+                </>;
+        } else {
+            content = <NonIdealState
+                icon={'import'}
+                title='No file loaded'
+                description={'Drag and drop or select a file below...'}
+                action={action}
+            />
+        }
+
         return (
             <Card id={'drop_zone'}
                 onDrop={(ev) => this.dropHandler(ev)}
                 onDragOver={(ev) => this.dragOverHandler(ev)}
+                className={'mb-midiFilePicker'}
             >
-                <div>
-                    <Label>
-                        Drag and drop, or pick a file...
-                        <FileInput text={this.state.fileName || 'No file loaded...'} onInputChange={(ev) => this.handleInputChange(ev)} />
-                    </Label>
-                </div>
+                {content}
             </Card>
         )
     }

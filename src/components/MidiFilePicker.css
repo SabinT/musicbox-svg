@@ -1,3 +1,7 @@
+.mb-midiFilePicker {
+    height: 250px;
+}
+
 #drop_zone {
     border: 1px dotted gray;
 }

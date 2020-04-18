@@ -1,5 +1,5 @@
 import { IMidiEvent, ChannelMessageType, NoteMidiEvent, ControllerMidiEvent as ControllerChangeMidiEvent, ProgramChangeMidiEvent, ChannelPressureMidiEvent, PitchBendMidiEvent, MetaMidiEvent } from "./MidiEvents";
-import { MIDIMetaMessageType } from "./MidiConstants";
+import { MIDIMetaMessageType, MidiNote } from "./MidiConstants";
 
 /**
  * A valid MIDI file will contain a single Header chunk followed by one or more Track chunks.
@@ -16,8 +16,10 @@ export interface IMidiChunk {
      * @param dataView The raw MIDI data buffer
      * @param dataStartOffset The byte position within `dataView`, where the chunk data (after the
      *      8-byte header) starts.
+     * @param chunkLength Total byte length of the chunk
+     * @param midiStats A data structure that facilitates gathering useful info while parsing (optional).
      */
-    parseFromRawData(dataView: DataView, dataStartOffset: number, chunkLength: number): void;
+    parseFromRawData(dataView: DataView, dataStartOffset: number, chunkLength: number, midiStats?: IMidiStats): void;
 }
 
 export enum MidiFileFormat {
@@ -146,6 +148,24 @@ export class MidiHeader implements IMidiChunk {
     }
 }
 
+/** Useful information gathered while parsing a MIDI file. */
+export interface IMidiStats {
+    /** Tempos corresponding to all tempo change events encountered in all tracks. */
+    tempos: number[];
+
+    /** Count of all notes encountered. */
+    noteHistogram: Map<MidiNote, number>;
+
+    /** Time in seconds for the last note on/off event. */
+    lastNoteOnEventInSeconds: number;
+
+    /** The lowest note encountered */
+    lowNote: MidiNote;
+
+    /** The highest note encountered */
+    highNote: MidiNote;
+}
+
 /**
  * Track chunks (identifier = MTrk) contain a sequence of time-ordered events (MIDI and/or sequencer
  * specific data), each of which has a delta time value associated with it - i.e. the amount of time
@@ -164,12 +184,12 @@ export class MidiTrack implements IMidiChunk {
     // Used to calculate absolute timing data while parsing tracks
     private header: MidiHeader;
 
-    constructor(header: MidiHeader, dataView: DataView, dataStartOffset: number, chunkLength: number) {
+    constructor(header: MidiHeader, dataView: DataView, dataStartOffset: number, chunkLength: number, midiStats?: IMidiStats) {
         this.header = header;
-        this.parseFromRawData(dataView, dataStartOffset, chunkLength);
+        this.parseFromRawData(dataView, dataStartOffset, chunkLength, midiStats);
     }
 
-    public parseFromRawData(dataView: DataView, dataStartOffset: number, chunkLength: number): void {
+    public parseFromRawData(dataView: DataView, dataStartOffset: number, chunkLength: number, midiStats?: IMidiStats): void {
         let currentOffset = dataStartOffset;
         let done: boolean = false;
 
@@ -220,6 +240,11 @@ export class MidiTrack implements IMidiChunk {
                         midiEvent = new NoteMidiEvent(deltaTime);
                         midiEvent.note = dataView.getUint8(currentOffset++);
                         midiEvent.velocity = dataView.getUint8(currentOffset++);
+
+                        if (messageType === ChannelMessageType.NoteOn && midiStats) {
+                            this.collectNoteStats(midiStats, midiEvent, cumulativeSeconds);
+                        }
+
                         break;
 
                     case ChannelMessageType.Controller:
@@ -280,6 +305,12 @@ export class MidiTrack implements IMidiChunk {
                         (dataView.getUint16(currentOffset) << 8) +
                         dataView.getUint8(currentOffset + 2);
                     secondsPerTick = microsecondsPerQuarterNote / (1000 * 1000 * this.header.pulsesPerQuarterNote);
+
+                    if (midiStats) {
+                        // Beats per minute
+                        const bpm = 60 / (secondsPerTick * this.header.pulsesPerQuarterNote);
+                        midiStats.tempos.push(bpm);
+                    }
                 }
 
                 if (usesMetricalTiming) {
@@ -292,6 +323,23 @@ export class MidiTrack implements IMidiChunk {
             }
         }
     }
+
+    private collectNoteStats(midiStats: IMidiStats, midiEvent: NoteMidiEvent, cumulativeSeconds: number) {
+        const currentCount = midiStats.noteHistogram.get(midiEvent.note) || 0;
+        midiStats.noteHistogram.set(midiEvent.note, currentCount + 1);
+
+        if (cumulativeSeconds > midiStats.lastNoteOnEventInSeconds) {
+            midiStats.lastNoteOnEventInSeconds = cumulativeSeconds;
+        }
+
+        if (midiEvent.note > midiStats.highNote || midiStats.highNote === MidiNote.None) {
+            midiStats.highNote = midiEvent.note;
+        }
+
+        if (midiEvent.note < midiStats.lowNote || midiStats.lowNote === MidiNote.None) {
+            midiStats.lowNote = midiEvent.note;
+        }
+    }
 }
 
 
@@ -300,9 +348,15 @@ export class MidiTrack implements IMidiChunk {
  */
 export default class MidiFile {
     public chunks: IMidiChunk[] = [];
+    public midiStats: IMidiStats;
+
+    constructor() {
+        this.midiStats = this.getInitialMidiStats();
+    }
 
     public loadFromBuffer(buffer: ArrayBuffer) {
         this.chunks = [];
+        this.midiStats = this.getInitialMidiStats();
 
         let currentPos: number = 0;
         let dataView = new DataView(buffer);
@@ -325,7 +379,7 @@ export default class MidiFile {
 
                 case 'MTrk':
                     // This is a track
-                    this.chunks.push(new MidiTrack(this.chunks[0] as MidiHeader, dataView, chunkDataStartOffset, chunkLength));
+                    this.chunks.push(new MidiTrack(this.chunks[0] as MidiHeader, dataView, chunkDataStartOffset, chunkLength, this.midiStats));
                     break;
 
                 default:
@@ -350,6 +404,16 @@ export default class MidiFile {
         }
 
         return [];
+    }
+
+    private getInitialMidiStats(): IMidiStats {
+        return {
+            noteHistogram: new Map<MidiNote, number>(),
+            highNote: MidiNote.None,
+            lowNote: MidiNote.None,
+            lastNoteOnEventInSeconds: 0,
+            tempos: []
+        };
     }
 }
 

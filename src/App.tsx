@@ -4,7 +4,7 @@ import MidiFilePicker from './components/MidiFilePicker';
 import MidiFile from './model/MidiFile';
 import MidiJsonConverter from './utilities/MidiJsonConverter';
 import MusicBoxSvg from './components/MusicBoxSvg';
-import { BuiltInProfiles, IMusicBoxProfile } from './model/MusicBox';
+import { BuiltInProfiles, IMusicBoxProfile } from './model/MusicBoxProfiles';
 import { MusicBoxProfileEditor } from './components/MusicBoxProfileEditor';
 
 import { Card, Collapse, Pre, Button, Divider } from '@blueprintjs/core';
@@ -14,10 +14,10 @@ const CREDITS = [
 ]
 
 interface IAppState {
-  debugMessage: string;
+  midiJson: string;
   midiDataAvailable: boolean;
   musicBoxProfile: IMusicBoxProfile;
-  showDebugMessage: boolean;
+  showMidiJson: boolean;
 }
 
 export default class App extends React.Component<{}, IAppState> {
@@ -30,10 +30,10 @@ export default class App extends React.Component<{}, IAppState> {
     super(props);
 
     this.state = {
-      debugMessage: '',
+      midiJson: '',
       midiDataAvailable: false,
       musicBoxProfile: BuiltInProfiles['fifteenNote'],
-      showDebugMessage: false
+      showMidiJson: false
     };
 
     this.musicBoxSvgRef = null;
@@ -54,7 +54,7 @@ export default class App extends React.Component<{}, IAppState> {
         <div className='mb-settingsArea'>
           <div className='mb-filePicker-container'>
             <MidiFilePicker
-              onFileLoaded={(buffer) => this.onMidiDataLoaded(buffer)}
+              onFileLoaded={(x) => this.onMidiDataLoaded(x)}
               ref={(x) => { this.midiFilePickerRef = x; }} />
           </div>
           <div className='mb-paperSettings-container'>
@@ -83,13 +83,21 @@ export default class App extends React.Component<{}, IAppState> {
           </>
         }
         <div className='mb-debugMessage-Container'>
-          <Button onClick={() => this.toggleDebugMessage()}>
-            {this.state.showDebugMessage ? "Hide" : "Show"} MIDI contents
-          </Button>
-          <Collapse isOpen={this.state.showDebugMessage}>
-            <Pre className='mb-debugMessage'>{this.state.debugMessage}</Pre>
-          </Collapse>
-          <Divider />
+          {
+            this.state.midiDataAvailable &&
+            <>
+              <Button onClick={() => this.toggleDebugMessage()}>
+                {this.state.showMidiJson ? "Hide" : "Show"} MIDI contents
+              </Button>
+              <Button icon={'export'} onClick={() => this.copyMidiJson()}>
+                Copy MIDI Json
+              </Button>
+              <Collapse isOpen={this.state.showMidiJson}>
+                <Pre className='mb-debugMessage'>{this.state.midiJson}</Pre>
+              </Collapse>
+              <Divider />
+            </>
+          }
           <Card>
             Credits<br />
             {credits}
@@ -99,12 +107,11 @@ export default class App extends React.Component<{}, IAppState> {
     );
   }
 
-  private onMidiDataLoaded(buffer: ArrayBuffer) {
-    this.midiFile = new MidiFile();
-    this.midiFile.loadFromBuffer(buffer);
+  private onMidiDataLoaded(midiFile: MidiFile) {
+    this.midiFile = midiFile;
 
     this.setState({
-      debugMessage: MidiJsonConverter.GetJson(this.midiFile),
+      midiJson: MidiJsonConverter.GetJson(this.midiFile),
       midiDataAvailable: true
     });
   }
@@ -132,7 +139,11 @@ export default class App extends React.Component<{}, IAppState> {
     }
   }
 
+  private copyMidiJson(): void {
+    navigator.clipboard.writeText(this.state.midiJson);
+  }
+
   private toggleDebugMessage(): void {
-    this.setState({ ...this.state, showDebugMessage: !this.state.showDebugMessage });
+    this.setState({ ...this.state, showMidiJson: !this.state.showMidiJson });
   }
 }

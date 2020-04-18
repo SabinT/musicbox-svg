@@ -1,0 +1,16 @@
+.mb-MusicBoxProfileEditor {
+}
+
+.mb-MusicBoxProfileEditor-settingLayout {
+    display: flex
+}
+
+@media screen and (max-width: 840px) {
+    .mb-MusicBoxProfileEditor-settingLayout {
+        flex-direction: column;
+    }
+}
+
+.mb-MusicBoxProfileEditor-settingGroup {
+    min-width: 240px;
+}

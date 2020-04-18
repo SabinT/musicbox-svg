@@ -3,7 +3,7 @@
 @import "~@blueprintjs/icons/lib/css/blueprint-icons.css";
 
 .mb-appRoot {
-  max-width: 900px;;
+  max-width: 1200px;
   margin: 16px;
 }
 
@@ -11,8 +11,15 @@
   display: flex;
 }
 
+
+@media screen and (max-width: 1200px) {
+  .mb-settingsArea {
+      flex-direction: column;
+  }
+}
+
 .mb-filePicker-container {
-  min-width: 300px;
+  max-width: 400px;
   padding: 8px;
   flex: 1;
 }

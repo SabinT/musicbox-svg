@@ -43,11 +43,22 @@ export const BuiltInProfiles: { [key: string]: IMusicBoxProfile } = {
             MidiNote.A5, MidiNote.B5, MidiNote.C6
         ],
         holeDiameterMm: 1.8,
-        millimetersPerSecond: 10
-    }
+        millimetersPerSecond: 20
+    },
 
-    // TODO
-    // 'thirtyNote': <IMusicBoxProfile>{
-    //     name: 'Thirty Note',
-    // }
+    //TODO
+    'thirtyNote': <IMusicBoxProfile>{
+        name: 'Thirty Note',
+        paperWidthMm: 69.5,
+        contentWidthMm: 57.89,
+        supportedNotes: [
+            MidiNote.C3, MidiNote.D3, MidiNote.G3, MidiNote.A3, MidiNote.B3, MidiNote.C4,
+            MidiNote.D4, MidiNote.E4, MidiNote.F4, MidiNote.Fs4, MidiNote.G4, MidiNote.Gs4,
+            MidiNote.A4, MidiNote.As4, MidiNote.B4, MidiNote.C5, MidiNote.Cs5, MidiNote.D5,
+            MidiNote.Ds5, MidiNote.E5, MidiNote.F5, MidiNote.Fs5, MidiNote.G5, MidiNote.Gs5,
+            MidiNote.A5, MidiNote.As5, MidiNote.B5, MidiNote.C6, MidiNote.D6, MidiNote.E6
+        ],
+        holeDiameterMm: 2,
+        millimetersPerSecond: 20
+    }
 }

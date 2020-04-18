@@ -1,4 +1,4 @@
-import { IMusicBoxProfile } from "../model/MusicBox";
+import { IMusicBoxProfile } from "../model/MusicBoxProfiles";
 import MidiFile, { MidiTrack, MidiFileFormat } from "../model/MidiFile";
 import * as React from 'react';
 import { NoteMidiEvent, ChannelMessageType } from "../model/MidiEvents";
@@ -27,10 +27,6 @@ export interface IMusicBoxSvgProps {
 
 export default class MusicBoxSvg extends React.Component<IMusicBoxSvgProps, {}> {
     private svgRef: SVGElement | null = null;
-
-    constructor(props: IMusicBoxSvgProps) {
-        super(props);
-    }
 
     public render() {
         const supportedNotes = this.props.musicBoxProfile.supportedNotes;
