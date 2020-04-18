@@ -116,18 +116,18 @@ export default class MusicBoxSvg extends React.Component<IMusicBoxSvgProps, {}> 
 
 function createCircle(
     key: number,
-    noteOnEvent: NoteMidiEvent,
+    midiEvent: NoteMidiEvent,
     noteIndices: Map<MidiNote, number>,
-    noteHeight: number,
+    noteGap: number,
     noteOffsetX: number,
     noteOffsetY: number,
     musicBoxProfile: IMusicBoxProfile): JSX.Element {
 
-    const noteIndex = noteIndices.get(noteOnEvent.note) || 0;
+    const noteIndex = noteIndices.get(midiEvent.note) || 0;
 
     return <circle key={key}
-        cx={noteOffsetX + noteOnEvent.absoluteTimeInSeconds * musicBoxProfile.millimetersPerSecond + "mm"}
-        cy={noteOffsetY + noteIndex * noteHeight + "mm"}
+        cx={noteOffsetX + midiEvent.absoluteTimeInSeconds * musicBoxProfile.millimetersPerSecond + "mm"}
+        cy={noteOffsetY + noteIndex * noteGap + "mm"}
         r={musicBoxProfile.holeDiameterMm / 2 + "mm"}
         fill={'none'}
         stroke={'black'}

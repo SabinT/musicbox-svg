@@ -49,8 +49,8 @@ export const BuiltInProfiles: { [key: string]: IMusicBoxProfile } = {
     //TODO
     'thirtyNote': <IMusicBoxProfile>{
         name: 'Thirty Note',
-        paperWidthMm: 69.5,
-        contentWidthMm: 57.89,
+        paperWidthMm: 70.1,
+        contentWidthMm: 58.25,
         supportedNotes: [
             MidiNote.C3, MidiNote.D3, MidiNote.G3, MidiNote.A3, MidiNote.B3, MidiNote.C4,
             MidiNote.D4, MidiNote.E4, MidiNote.F4, MidiNote.Fs4, MidiNote.G4, MidiNote.Gs4,
