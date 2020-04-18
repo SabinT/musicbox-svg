@@ -100,7 +100,7 @@ export default class MidiFilePicker extends React.Component<IMidiFilePickerProps
                     <H4>{this.state.fileName}</H4>
                     {action}
                     <Callout>
-                        <p>{tempoInfo}, {stats.lastNoteOnEventInSeconds} seconds </p>
+                        <p>{tempoInfo}; last note at {stats.lastNoteOnEventInSeconds} seconds </p>
                         <p>High Note: {MidiNote[stats.highNote]}, Low Note: {MidiNote[stats.lowNote]} </p>
                     </Callout>
                     <MidiNoteHistogram width={320} height={80} midiStats={stats} />
