@@ -35,8 +35,8 @@ export interface IMusicBoxProfile {
 export const BuiltInProfiles: { [key: string]: IMusicBoxProfile } = {
     'fifteenNote': {
         name: 'Fifteen Note',
-        paperWidthMm: 40.31,
-        contentWidthMm: 28,
+        paperWidthMm: 41,
+        contentWidthMm: 29,
         supportedNotes: [
             MidiNote.C4, MidiNote.D4, MidiNote.E4, MidiNote.F4, MidiNote.G4, MidiNote.A4,
             MidiNote.B4, MidiNote.C5, MidiNote.D5, MidiNote.E5, MidiNote.F5, MidiNote.G5,

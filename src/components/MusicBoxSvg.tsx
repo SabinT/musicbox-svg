@@ -31,16 +31,19 @@ export default class MusicBoxSvg extends React.Component<IMusicBoxSvgProps, {}> 
     public render() {
         const supportedNotes = this.props.musicBoxProfile.supportedNotes;
         const supportedNoteSet: Set<MidiNote> = new Set(supportedNotes);
-        const noteHeight: number =
+
+        // Distance between two note lines
+        const noteGap: number =
             this.props.musicBoxProfile.contentWidthMm /
-            this.props.musicBoxProfile.supportedNotes.length;
+            (this.props.musicBoxProfile.supportedNotes.length - 1);
+
         const noteOffsetY: number =
             (this.props.musicBoxProfile.paperWidthMm - this.props.musicBoxProfile.contentWidthMm) / 2;
 
-        // An index of the note's position from the bottom of the music box sheet.
+        // An index of the note's position from the top of the music box sheet.
         const noteIndices: Map<MidiNote, number> = new Map<MidiNote, number>();
         [...supportedNotes].sort().forEach((note, i) => {
-            noteIndices.set(note, supportedNotes.length - i);
+            noteIndices.set(note, supportedNotes.length - i - 1);
         });
 
         // Find the first actionable MIDI track.
@@ -93,7 +96,7 @@ export default class MusicBoxSvg extends React.Component<IMusicBoxSvgProps, {}> 
                         i,
                         noteOnEvent,
                         noteIndices,
-                        noteHeight,
+                        noteGap,
                         startPaddingMm,
                         noteOffsetY,
                         this.props.musicBoxProfile))}
