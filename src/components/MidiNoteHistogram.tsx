@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { IMidiStats } from '../model/MidiFile';
 import { MidiNote } from '../model/MidiConstants';
+import { Colors } from "@blueprintjs/core";
 
 export interface IMidiNoteHistogramProps {
     midiStats: IMidiStats;
@@ -26,12 +27,16 @@ export default function MidiNoteHistogram(props: IMidiNoteHistogramProps) {
     let sparseAxis = noteRange > 30;
 
     for (let note = stats.lowNote; note <= stats.highNote; note++) {
+        const friendlyNote = MidiNote[note].replace('s', '#');
+
         const xPosition = (note - stats.lowNote) * noteWidth;
 
         const noteCount = stats.noteHistogram.get(note);
         if (noteCount) {
             bars.push(
-                <rect x={xPosition} width={noteWidth} y={0} height={noteCount} />
+                <rect key={note} x={xPosition} width={noteWidth} y={0} height={noteCount} fill={Colors.BLUE1} >
+                    <title>{friendlyNote}</title>
+                </rect>
             );
 
             if (noteCount > maxNoteCount) { maxNoteCount = noteCount; }
@@ -43,13 +48,12 @@ export default function MidiNoteHistogram(props: IMidiNoteHistogramProps) {
             const textX = xPosition + noteWidth;
             noteAxis.push(
                 <text
+                    key={note}
                     transform={`rotate(-90,${textX},0)`}
                     x={textX}
                     y={0}
                     fontSize='10'>
-                    {
-                        MidiNote[note].replace('s', '#')
-                    }
+                    {friendlyNote}
                 </text>
             );
         }
@@ -80,6 +84,6 @@ function shouldSkipNoteInAxis(note: MidiNote, stats: IMidiStats) {
         }
 
         // Skip every second axis laber otherwise
-        return (note - stats.lowNote) % 2 == 0;
+        return (note - stats.lowNote) % 2 === 0;
     }
 }

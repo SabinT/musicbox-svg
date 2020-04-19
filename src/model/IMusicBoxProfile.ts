@@ -34,7 +34,7 @@ export interface IMusicBoxProfile {
 
 export const BuiltInProfiles: { [key: string]: IMusicBoxProfile } = {
     'fifteenNote': {
-        name: 'Fifteen Note',
+        name: '15 Note',
         paperWidthMm: 41,
         contentWidthMm: 29,
         supportedNotes: [
@@ -46,9 +46,8 @@ export const BuiltInProfiles: { [key: string]: IMusicBoxProfile } = {
         millimetersPerSecond: 20
     },
 
-    //TODO
-    'thirtyNote': <IMusicBoxProfile>{
-        name: 'Thirty Note',
+    'thirtyNote': {
+        name: '30 Note',
         paperWidthMm: 70.1,
         contentWidthMm: 58.25,
         supportedNotes: [

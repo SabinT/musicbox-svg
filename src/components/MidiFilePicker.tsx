@@ -1,6 +1,6 @@
 import './MidiFilePicker.css';
 import * as React from 'react';
-import { Card, FileInput, NonIdealState, H4, Callout } from "@blueprintjs/core";
+import { Card, FileInput, NonIdealState, H4, Callout, Text } from "@blueprintjs/core";
 import MidiFile from '../model/MidiFile';
 import { MidiNote } from '../model/MidiConstants';
 import MidiNoteHistogram from './MidiNoteHistogram';
@@ -97,7 +97,7 @@ export default class MidiFilePicker extends React.Component<IMidiFilePickerProps
 
             content =
                 <>
-                    <H4>{this.state.fileName}</H4>
+                    <H4><Text ellipsize={true}>{this.state.fileName}</Text></H4>
                     {action}
                     <Callout>
                         <p>{tempoInfo}; last note at {stats.lastNoteOnEventInSeconds} seconds </p>

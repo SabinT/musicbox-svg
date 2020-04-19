@@ -1,5 +1,5 @@
 import './MusicBoxProfileEditor.css';
-import { IMusicBoxProfile, BuiltInProfiles } from '../model/MusicBoxProfiles';
+import { IMusicBoxProfile, BuiltInProfiles } from '../model/IMusicBoxProfile';
 import React, { useState } from 'react';
 import { Card, NumericInput, Button, Label, H4, Callout, Menu, MenuItem, Popover, Position } from '@blueprintjs/core';
 import { MidiNote } from '../model/MidiConstants';
