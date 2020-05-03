@@ -153,6 +153,9 @@ export interface IMidiStats {
     /** Tempos corresponding to all tempo change events encountered in all tracks. */
     tempos: number[];
 
+    /** Raw representation of tempo for maximal accuracy */
+    secondsPerTickValues: number[];
+
     /** Count of all notes encountered. */
     noteHistogram: Map<MidiNote, number>;
 
@@ -196,7 +199,11 @@ export class MidiTrack implements IMidiChunk {
         let cumulativeSeconds = 0;
         let secondsPerTick = 0;
         const usesMetricalTiming = this.header.timingScheme === MidiTimingScheme.metrical;
-        if (usesMetricalTiming && this.header.pulsesPerQuarterNote) {
+
+        // Tempo might have been set in a previous track, use the last seen value
+        if (midiStats && midiStats.secondsPerTickValues && midiStats.secondsPerTickValues.length > 0) {
+            secondsPerTick = midiStats.secondsPerTickValues[midiStats.secondsPerTickValues.length - 1];
+        } else if (usesMetricalTiming && this.header.pulsesPerQuarterNote) {
             // Default tempo of 120 bpm if no tempo change event is present.
             secondsPerTick = 60 / (120 * this.header.pulsesPerQuarterNote);
         }
@@ -230,8 +237,10 @@ export class MidiTrack implements IMidiChunk {
 
             if (messageType >= ChannelMessageType.NoteOff
                 && messageType <= ChannelMessageType.PitchBend) {
-
                 // This is a channel message
+
+                const channelNumber = (statusByte & 0b00001111);
+
                 let midiEvent;
                 switch (messageType) {
                     case ChannelMessageType.NoteOff:
@@ -265,7 +274,10 @@ export class MidiTrack implements IMidiChunk {
 
                     case ChannelMessageType.PitchBend:
                         midiEvent = new PitchBendMidiEvent(deltaTime);
-                        midiEvent.value = dataView.getUint8(currentOffset++);
+
+                        // TODO this is not the actual value, just reading bytes
+                        midiEvent.value = dataView.getUint16(currentOffset);
+                        currentOffset += 2;
                         break;
 
                     default:
@@ -277,6 +289,7 @@ export class MidiTrack implements IMidiChunk {
                 }
 
                 midiEvent.channelMessageType = messageType;
+                midiEvent.channel = channelNumber;
                 this.events.push(midiEvent);
             } else if (statusByte >= 0b11110000 && statusByte <= 0b11110111) {
                 // SysEx messages
@@ -310,6 +323,7 @@ export class MidiTrack implements IMidiChunk {
                         // Beats per minute
                         const bpm = 60 / (secondsPerTick * this.header.pulsesPerQuarterNote);
                         midiStats.tempos.push(bpm);
+                        midiStats.secondsPerTickValues.push(secondsPerTick);
                     }
                 }
 
@@ -348,6 +362,10 @@ export class MidiTrack implements IMidiChunk {
  */
 export default class MidiFile {
     public chunks: IMidiChunk[] = [];
+
+    public header?: MidiHeader;
+    public tracks: MidiTrack[] = []
+
     public midiStats: IMidiStats;
 
     constructor() {
@@ -374,12 +392,16 @@ export default class MidiFile {
             const chunkDataStartOffset = currentPos;
             switch (chunkType) {
                 case 'MThd':
-                    this.chunks.push(new MidiHeader(dataView, chunkDataStartOffset, chunkLength));
+                    const header = new MidiHeader(dataView, chunkDataStartOffset, chunkLength);
+                    this.header = header;
+                    this.chunks.push(header);
                     break;
 
                 case 'MTrk':
+                    const track = new MidiTrack(this.chunks[0] as MidiHeader, dataView, chunkDataStartOffset, chunkLength, this.midiStats);
                     // This is a track
-                    this.chunks.push(new MidiTrack(this.chunks[0] as MidiHeader, dataView, chunkDataStartOffset, chunkLength, this.midiStats));
+                    this.tracks.push(track);
+                    this.chunks.push(track);
                     break;
 
                 default:
@@ -391,19 +413,17 @@ export default class MidiFile {
     }
 
     public getHeader(): MidiHeader {
-        if (this.chunks && this.chunks.length > 0) {
-            return this.chunks[0] as MidiHeader;
+        // TODO clean up public props
+        if (this.header) {
+            return this.header;
         }
 
         throw new Error('No header found!');
     }
 
     public getTracks(): MidiTrack[] {
-        if (this.chunks) {
-            return this.chunks.filter(x => x instanceof MidiTrack) as MidiTrack[];
-        }
-
-        return [];
+        // TODO clean up public props
+        return this.tracks;
     }
 
     private getInitialMidiStats(): IMidiStats {
@@ -412,7 +432,8 @@ export default class MidiFile {
             highNote: MidiNote.None,
             lowNote: MidiNote.None,
             lastNoteOnEventInSeconds: 0,
-            tempos: []
+            tempos: [],
+            secondsPerTickValues: []
         };
     }
 }

@@ -4,7 +4,7 @@ import { MidiNote } from '../model/MidiConstants';
 
 export default class MidiJsonConverter {
     public static GetJson(midiFile: MidiFile): string {
-        return JSON.stringify(midiFile.chunks, prettyPrintReplacer, 4);
+        return JSON.stringify(midiFile, prettyPrintReplacer, 4);
     }
 }
 
@@ -17,8 +17,11 @@ function prettyPrintReplacer(key: string, value: any) {
         case 'rawTimingData':
             return undefined;
 
-        // Avoid serializing header references in MIDI tracks
+        // Avoid serializing header references for now. More interested in tracks
         case 'header':
+            return undefined;
+
+        case 'chunks':
             return undefined;
 
         case 'timingScheme':

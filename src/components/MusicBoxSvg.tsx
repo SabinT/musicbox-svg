@@ -62,37 +62,46 @@ export default class MusicBoxSvg extends React.Component<IMusicBoxSvgProps, {}> 
 
     public render() {
         // TODO optimize this: recalc only needed on page settings changes
-        const pages = this.paginateEvents();
-        this.numPages = pages.length;
+        try {
+            const pages = this.paginateEvents();
+            this.numPages = pages.length;
 
-        const mbProfile = this.props.musicBoxProfile;
-        const supportedNotes = mbProfile.supportedNotes;
+            const mbProfile = this.props.musicBoxProfile;
+            const supportedNotes = mbProfile.supportedNotes;
 
-        // Distance between two note lines
-        const noteGap: number = mbProfile.contentWidthMm / (mbProfile.supportedNotes.length - 1);
-        const noteOffsetY: number = (mbProfile.paperWidthMm - mbProfile.contentWidthMm) / 2;
+            // Distance between two note lines
+            const noteGap: number = mbProfile.contentWidthMm / (mbProfile.supportedNotes.length - 1);
+            const noteOffsetY: number = (mbProfile.paperWidthMm - mbProfile.contentWidthMm) / 2;
 
-        // An index of the note's position from the top of the music box sheet.
-        const noteIndices: Map<MidiNote, number> = new Map<MidiNote, number>();
-        [...supportedNotes].sort().forEach((note, i) => {
-            noteIndices.set(note, supportedNotes.length - i - 1);
-        });
+            // An index of the note's position from the top of the music box sheet.
+            const noteIndices: Map<MidiNote, number> = new Map<MidiNote, number>();
+            [...supportedNotes].sort().forEach((note, i) => {
+                noteIndices.set(note, supportedNotes.length - i - 1);
+            });
 
-        let totalPaperLength = 0;
-        pages.forEach(p => { totalPaperLength += (p.endTimeInSeconds - p.startTimeInSeconds) * mbProfile.millimetersPerSecond });
+            let totalPaperLength = 0;
+            pages.forEach(p => { totalPaperLength += (p.endTimeInSeconds - p.startTimeInSeconds) * mbProfile.millimetersPerSecond });
 
-        return (
-            <>
-                <Callout intent={!this.error ? 'success' : 'danger'}>
-                    {
-                        this.error &&
-                        <p>{this.error}</p>
-                    }
-                    {<p>Total paper length: {totalPaperLength} mm, width: {mbProfile.paperWidthMm} mm</p>}
+            return (
+                <>
+                    <Callout intent={!this.error ? 'success' : 'danger'}>
+                        {
+                            this.error &&
+                            <p>{this.error}</p>
+                        }
+                        {<p>Total paper length: {totalPaperLength} mm, width: {mbProfile.paperWidthMm} mm</p>}
+                    </Callout>
+                    {pages.map((page) => { return this.generateSvgForPage(pages, page, noteIndices, noteGap, noteOffsetY) })}
+                </>
+            );
+        } catch (error) {
+            return (
+                <Callout intent='danger'>
+                    <p>Error encountered</p>
+                    <p>{JSON.stringify(error)}</p>
                 </Callout>
-                {pages.map((page) => { return this.generateSvgForPage(pages, page, noteIndices, noteGap, noteOffsetY) })}
-            </>
-        );
+            );
+        }
     }
 
     private generateSvgForPage(pages: IMidiEventPage[], page: IMidiEventPage, noteIndices: Map<MidiNote, number>, noteGap: number, noteOffsetY: number) {
