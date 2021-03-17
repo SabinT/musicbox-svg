@@ -1,3 +1,5 @@
+Try it live: https://www.lumic.space
+
 This project will produce SVG files that can be printed or laser cut on paper to produce music box strips. Options will be provided to select paper width, number of notes supported by the box, etc.
 
 This project also includes a simple MIDI File parser based on the inforamtion available at https://www.midi.org/ and http://www.somascape.org/midi/tech/mfile.html. The parser by itself can be used to analyze MIDI files, convert MIDI to JSON, convert delta times to absolute seconds, etc.
