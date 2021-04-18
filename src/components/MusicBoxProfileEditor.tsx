@@ -35,7 +35,7 @@ export function MusicBoxProfileEditor(props: IMusicBoxProfileEditorProps) {
     const profileSelectionMenu = <Menu>{menuItems} </Menu>;
     const profileSelectionPopOver =
         <Popover content={profileSelectionMenu} position={Position.BOTTOM}>
-            <Button icon="document-open" text="Load profile..." />
+            <Button icon="document-open" text="Select profile..." />
         </Popover>;
 
     return (

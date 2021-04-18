@@ -35,7 +35,7 @@ export default function MidiNoteHistogram(props: IMidiNoteHistogramProps) {
         if (noteCount) {
             bars.push(
                 <rect key={note} x={xPosition} width={noteWidth} y={0} height={noteCount} fill={Colors.BLUE1} >
-                    <title>{friendlyNote}</title>
+                    <title>{noteCount}</title>
                 </rect>
             );
 

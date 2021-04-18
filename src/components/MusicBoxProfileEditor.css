@@ -2,7 +2,9 @@
 }
 
 .mb-MusicBoxProfileEditor-settingLayout {
-    display: flex
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
 }
 
 @media screen and (max-width: 840px) {
@@ -13,4 +15,5 @@
 
 .mb-MusicBoxProfileEditor-settingGroup {
     min-width: 240px;
+    margin-top: 8px;
 }

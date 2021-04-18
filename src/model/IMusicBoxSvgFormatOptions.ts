@@ -7,8 +7,21 @@ export interface IMusicBoxSvgFormatOptions {
      * Only non-zero values have any effect
      */
     pageWidthMm: number;
+
+    /**
+     * Padding in millimeters before the start of the first note.
+     */
+    startPaddingMm: number;
+
     /** Whether to render the rectangular border */
     renderBorder: boolean;
+
     /** Omit page boundaries when paginating */
     omitPageBoundaries: boolean;
+
+    /** Optimize page boundaries to avoid half circles */
+    optimizePageBoundaries: boolean;
+
+    /** Add jigsaw joiners to both start/end so that a loop can be created */
+    loopMode: boolean;
 }

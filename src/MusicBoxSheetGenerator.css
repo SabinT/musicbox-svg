@@ -13,8 +13,8 @@
 
 .mb-settingsArea {
   display: flex;
+  max-width: 800px;
 }
-
 
 @media screen and (max-width: 1200px) {
   .mb-settingsArea {
@@ -22,14 +22,8 @@
   }
 }
 
-.mb-filePicker-container {
-  max-width: 400px;
-  padding: 8px;
-  flex: 1;
-}
-
-.mb-paperSettings-container {
-  min-width: 300px;
+.mb-settingsTab-container {
+  width: 600px;
   padding: 8px;
   flex: 1;
 }
@@ -41,6 +35,8 @@
   justify-content: center;
   flex-direction: column;
   align-items: center;
+  overflow: scroll;
+  max-width: 800px;
 }
 
 .mb-svg-downloadButton {

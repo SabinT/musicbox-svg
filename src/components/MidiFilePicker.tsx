@@ -6,19 +6,23 @@ import { MidiNote } from '../model/MidiConstants';
 import MidiNoteHistogram from './MidiNoteHistogram';
 
 export interface IMidiFilePickerProps {
-    onFileLoaded?(midiFile: MidiFile): void;
+    fileName?: string;
+    midiFile?: MidiFile;
+    onFileLoaded?(fileName: string, midiFile: MidiFile): void;
 }
 
 export interface IMidiFilePickerState {
     fileName?: string;
+    midiFile?: MidiFile;
 }
 
 export default class MidiFilePicker extends React.Component<IMidiFilePickerProps, IMidiFilePickerState>{
-    private midiFile?: MidiFile;
-
-    constructor(props: any) {
+    constructor(props: IMidiFilePickerProps) {
         super(props);
-        this.state = {};
+        this.state = {
+            fileName: props.fileName,
+            midiFile: props.midiFile
+        };
     }
 
     public getCurrentFilename(): string | undefined {
@@ -66,10 +70,12 @@ export default class MidiFilePicker extends React.Component<IMidiFilePickerProps
         var reader = new FileReader();
         reader.onload = () => {
             if (this.props.onFileLoaded && reader.result instanceof ArrayBuffer) {
-                this.midiFile = new MidiFile();
-                this.midiFile.loadFromBuffer(reader.result);
+                const midiFile = new MidiFile();
+                midiFile.loadFromBuffer(reader.result);
 
-                this.props.onFileLoaded(this.midiFile);
+                this.setState({ midiFile: midiFile });
+
+                this.props.onFileLoaded(file.name, midiFile);
             }
         }
 
@@ -83,14 +89,14 @@ export default class MidiFilePicker extends React.Component<IMidiFilePickerProps
     }
 
     render() {
-        const action = !!this.midiFile
+        const action = !!this.state.midiFile
             ? <FileInput text={this.state.fileName} buttonText={'Replace'} onInputChange={(ev) => this.handleInputChange(ev)} />
             : <FileInput text={'Select a MIDI file'} onInputChange={(ev) => this.handleInputChange(ev)} />;
 
         let content: JSX.Element;
 
-        if (this.midiFile) {
-            const stats = this.midiFile.midiStats;
+        if (this.state.midiFile) {
+            const stats = this.state.midiFile.midiStats;
 
             const tempoInfo = 'Tempo: ' +
                 stats.tempos.map(x => parseFloat(x.toFixed(2))).join(', ') + ' bpm';
@@ -100,7 +106,7 @@ export default class MidiFilePicker extends React.Component<IMidiFilePickerProps
                     <H4><Text ellipsize={true}>{this.state.fileName}</Text></H4>
                     {action}
                     <Callout>
-                        <p>{tempoInfo}; last note at {stats.lastNoteOnEventInSeconds} seconds </p>
+                        <p>{tempoInfo}; last note at {stats.lastNoteOnEventInSeconds.toFixed(2)} seconds </p>
                         <p>High Note: {MidiNote[stats.highNote]}, Low Note: {MidiNote[stats.lowNote]} </p>
                     </Callout>
                     <MidiNoteHistogram width={320} height={80} midiStats={stats} />

@@ -21,13 +21,21 @@ export function MusicBoxSvgFormatEditor(props: IMusicBoxSvgFormatEditorProps) {
             <H4><span>SVG Formatting Options</span></H4>
             <div>
                 <Label>
-                    Page width (mm)
-                        <NumericInput
+                    Maximum Page width (mm)
+                    <NumericInput
                         value={options.pageWidthMm}
                         onValueChange={(num) => { setOptions({ ...options, pageWidthMm: num }) }} />
                 </Label>
+                <Label>
+                    Start padding (mm)
+                    <NumericInput
+                        value={options.startPaddingMm}
+                        onValueChange={(num) => { setOptions({ ...options, startPaddingMm: num }) }} />
+                </Label>
                 <Checkbox checked={options.renderBorder} label={'Render border'} onChange={() => { setOptions({ ...options, renderBorder: !options.renderBorder }) }} />
                 <Checkbox checked={options.omitPageBoundaries} label={'Omit page boundaries'} onChange={() => { setOptions({ ...options, omitPageBoundaries: !options.omitPageBoundaries }) }} />
+                <Checkbox checked={options.optimizePageBoundaries} label={'Optimize page boundaries'} onChange={() => { setOptions({ ...options, optimizePageBoundaries: !options.optimizePageBoundaries }) }} />
+                <Checkbox checked={options.loopMode} label={'Loop mode'} onChange={() => { setOptions({ ...options, loopMode: !options.loopMode }) }} />
                 <Button onClick={onApplyChanges}>Apply</Button>
             </div>
         </Card>

@@ -1,3 +1,5 @@
+import './MusicBoxSvg.css';
+
 import { IMusicBoxProfile } from "../model/IMusicBoxProfile";
 import MidiFile, { MidiTrack, MidiFileFormat } from "../model/MidiFile";
 import * as React from 'react';
@@ -5,6 +7,11 @@ import { NoteMidiEvent, ChannelMessageType } from "../model/MidiEvents";
 import { MidiNote } from "../model/MidiConstants";
 import { Callout } from "@blueprintjs/core";
 import { IMusicBoxSvgFormatOptions } from "../model/IMusicBoxSvgFormatOptions";
+
+const JIGSAW_WIDTH = 2;
+const JIGSAW_OPENFACTOR = 0.3;
+const JIGSAW_CLOSEFACTOR = 0.5;
+const MAX_START_SKEW = 10;
 
 export interface IMusicBoxSvgProps {
     midiFile: MidiFile;
@@ -14,7 +21,10 @@ export interface IMusicBoxSvgProps {
      */
     musicBoxProfile: IMusicBoxProfile;
 
-    formatting?: IMusicBoxSvgFormatOptions;
+    /**
+     * Options for pagination and formatting of generated layout.
+     */
+    formatting: IMusicBoxSvgFormatOptions;
 
     /** The HTML element id for the <svg> element. */
     elementId: string;
@@ -89,9 +99,15 @@ export default class MusicBoxSvg extends React.Component<IMusicBoxSvgProps, {}> 
                             this.error &&
                             <p>{this.error}</p>
                         }
-                        {<p>Total paper length: {totalPaperLength} mm, width: {mbProfile.paperWidthMm} mm</p>}
+                        {<p>Total paper length: {totalPaperLength.toFixed(2)} mm, width: {mbProfile.paperWidthMm} mm</p>}
                     </Callout>
-                    {pages.map((page) => { return this.generateSvgForPage(pages, page, noteIndices, noteGap, noteOffsetY) })}
+                    {pages.map((page) => {
+                        return (
+                            <div className='mb-musicBoxSvgWrapper'>
+                                { this.generateSvgForPage(pages, page, noteIndices, noteGap, noteOffsetY)}
+                            </div>
+                        )
+                    })}
                 </>
             );
         } catch (error) {
@@ -104,12 +120,24 @@ export default class MusicBoxSvg extends React.Component<IMusicBoxSvgProps, {}> 
         }
     }
 
-    private generateSvgForPage(pages: IMidiEventPage[], page: IMidiEventPage, noteIndices: Map<MidiNote, number>, noteGap: number, noteOffsetY: number) {
+    private generateSvgForPage(
+        pages: IMidiEventPage[],
+        page: IMidiEventPage,
+        noteIndices: Map<MidiNote, number>,
+        noteGap: number,
+        noteOffsetY: number): JSX.Element {
+
+        // The width of the leading pattern (for distinguishing first page)
         const xLen = (page.endTimeInSeconds - page.startTimeInSeconds) * this.props.musicBoxProfile.millimetersPerSecond;
         const yLen = this.props.musicBoxProfile.paperWidthMm;
 
-        // While paginating, the center of holes at the end of page align with page end
-        const svgXLength = xLen + this.props.musicBoxProfile.holeDiameterMm;
+        // While paginating, the center of holes at the end of page align with page end,
+        // unless JIGSAW_WIDTH is greater
+        const svgXLength = xLen + (
+            this.props.musicBoxProfile.holeDiameterMm > JIGSAW_WIDTH
+                ? this.props.musicBoxProfile.holeDiameterMm
+                : JIGSAW_WIDTH
+        );
 
         const formatOptions = this.props.formatting;
         const drawLeadingBorder = (formatOptions && !formatOptions.omitPageBoundaries) || page.pageNum === 0;
@@ -127,33 +155,108 @@ export default class MusicBoxSvg extends React.Component<IMusicBoxSvgProps, {}> 
                     {
                         formatOptions && formatOptions.renderBorder &&
                         <>
-                            {/* Top border */}
-                            <line x1='0mm' y1='0mm' x2={xLen + 'mm'} y2='0mm' stroke='black' />
-                            {/* Bottom border */}
-                            <line x1='0mm' y1={yLen + 'mm'} x2={xLen + 'mm'} y2={yLen + 'mm'} stroke='black' />
+                            {this.renderSvgLineMm((page.pageNum === 0 && !this.props.formatting.loopMode) ? this.calculateStartSkew() : 0, 0, xLen, 0)}
+                            {this.renderSvgLineMm(0, yLen, xLen, yLen)}
                             {
-                                drawLeadingBorder &&
-                                <line x1='0mm' y1='0mm' x2='0mm' y2={yLen + 'mm'} stroke='black' />
+                                drawLeadingBorder && this.renderLeadingBorder(yLen, /* isFirstPage: */page.pageNum === 0)
                             }
                             {
                                 drawTrailingBorder &&
-                                <line x1={xLen + 'mm'} y1='0mm' x2={xLen + 'mm'} y2={yLen + 'mm'} stroke='black' />
+                                this.renderTrailingBorder(xLen, yLen, /* isLastPage: */ false)
                             }
                         </>
                     }
-                    {page.midiEvents.map((noteOnEvent, i) =>
-                        createCircle(
-                            /* key: */`${page.pageNum}_${i}`,
-                            noteOnEvent,
-                            noteIndices,
-                            noteGap,
-                            page.startTimeInSeconds,
-                            noteOffsetY,
-                            this.props.musicBoxProfile))}
+                    {
+                        page.midiEvents.map((noteOnEvent, i) =>
+                            createCircle(
+                                /* key: */`${page.pageNum}_${i}`,
+                                noteOnEvent,
+                                noteIndices,
+                                noteGap,
+                                page.startTimeInSeconds,
+                                noteOffsetY,
+                                this.props.musicBoxProfile))
+                    }
                 </g>
             </svg>;
 
         return pageSvg;
+    }
+
+    private renderLeadingBorder(height: number, isFirstPage: boolean) {
+        if (isFirstPage && !this.props.formatting.loopMode) {
+            // Special kind of leading border to identify the start
+            const skewMm = this.calculateStartSkew();
+
+            return this.renderSvgLineMm(skewMm, 0, 0, height);
+        } else {
+            // Render jigsaw joiner so that it can join with previous page
+            // (also enabled in loop mode for first page)
+            const profile = this.props.musicBoxProfile;
+
+            return this.renderJigsawJoiner(
+                /* xStart: */0,
+                height
+            );
+        }
+    }
+
+    private calculateStartSkew() {
+        return this.props.formatting.startPaddingMm < MAX_START_SKEW ?
+            this.props.formatting.startPaddingMm :
+            MAX_START_SKEW;
+    }
+
+    private renderTrailingBorder(xLen: number, yLen: number, isLastPage: boolean) {
+        if (isLastPage && !this.props.formatting.loopMode) {
+            // Just a boring straight line
+            return this.renderSvgLineMm(xLen, 0, xLen, yLen);
+        } else {
+            // Jigsaw joiner to connect to next page
+            // Also enabled for last page in loop mode
+            return this.renderJigsawJoiner(xLen, yLen)
+        }
+    }
+
+    private renderSvgLineMm(x1: number, y1: number, x2: number, y2: number) {
+        return <line x1={x1 + 'mm'} y1={y1 + 'mm'} x2={x2 + 'mm'} y2={y2 + 'mm'} stroke='black' />;
+    }
+
+    private renderJigsawJoiner(xStart: number, height: number) {
+        // The gap on either side between content area and paper edge
+        const profile = this.props.musicBoxProfile;
+        const gap = 0.5 * (profile.paperWidthMm - profile.contentWidthMm - profile.holeDiameterMm);
+
+        const a = JIGSAW_OPENFACTOR; // open factor
+        const b = JIGSAW_CLOSEFACTOR; // close factor
+
+        const h = 0.5 * gap; // half gap
+
+        const points = [
+            // lower half
+            { x: xStart, y: 0 },
+            { x: xStart, y: h - a * h },
+            { x: xStart + JIGSAW_WIDTH, y: h - b * h },
+            { x: xStart + JIGSAW_WIDTH, y: h + b * h },
+            { x: xStart, y: h + a * h },
+
+            // upper half
+            { x: xStart, y: height - h - a * h },
+            { x: xStart + JIGSAW_WIDTH, y: height - h - b * h },
+            { x: xStart + JIGSAW_WIDTH, y: height - h + b * h },
+            { x: xStart, y: height - h + a * h },
+            { x: xStart, y: height }
+        ]
+
+        var lines: JSX.Element[] = [];
+
+        for (let i = 0; i < points.length - 1; i++) {
+            const p = points[i];
+            const q = points[i + 1];
+            lines.push(this.renderSvgLineMm(p.x, p.y, q.x, q.y));
+        }
+
+        return <>{lines}</>
     }
 
     private paginateEvents(): IMidiEventPage[] {
@@ -172,6 +275,8 @@ export default class MusicBoxSvg extends React.Component<IMusicBoxSvgProps, {}> 
         const supportedEvents: NoteMidiEvent[] = [];
         const unsupportedEvents: NoteMidiEvent[] = [];
 
+        this.error = '';
+
         if (!this.props.midiFile.getTracks()) {
             this.error = 'No tracks found!';
         }
@@ -182,13 +287,18 @@ export default class MusicBoxSvg extends React.Component<IMusicBoxSvgProps, {}> 
             this.error += `Unsupported notes found: ${unsupportedEvents.length} total. Inspect MIDI file or music box profile`;
         }
 
+        const formatOptions = this.props.formatting;
+        const musicBoxProfile = this.props.musicBoxProfile;
+
         let pageLengthInSeconds = Infinity;
-        if (this.props.formatting && this.props.formatting.pageWidthMm > 0) {
-            pageLengthInSeconds = this.props.formatting.pageWidthMm / this.props.musicBoxProfile.millimetersPerSecond;
+        if (formatOptions.pageWidthMm > 0) {
+            pageLengthInSeconds = formatOptions.pageWidthMm / this.props.musicBoxProfile.millimetersPerSecond
         }
 
         let currentPage: IMidiEventPage = {
-            startTimeInSeconds: -0.5, //0.5 seconds of padding on first page
+            // Add padding on the first page (set negative start time)
+            startTimeInSeconds: -(formatOptions.startPaddingMm + musicBoxProfile.holeDiameterMm * 0.5)
+                / musicBoxProfile.millimetersPerSecond,
             endTimeInSeconds: 0,
             midiEvents: [],
             pageNum: 0,
@@ -198,17 +308,25 @@ export default class MusicBoxSvg extends React.Component<IMusicBoxSvgProps, {}> 
 
         let currentNoteIndex = 0;
         let previousNoteEvent: NoteMidiEvent | null = null;
+        const secondsPerHoleRadius = musicBoxProfile.holeDiameterMm * 0.5 / musicBoxProfile.millimetersPerSecond;
+
         while (currentNoteIndex < supportedEvents.length) {
             const noteEvent = supportedEvents[currentNoteIndex];
-            if (noteEvent.absoluteTimeInSeconds > currentPage.startTimeInSeconds + pageLengthInSeconds) {
+            const maxPageEndTime = currentPage.startTimeInSeconds + pageLengthInSeconds;
+
+            if (noteEvent.absoluteTimeInSeconds + 0.5 * secondsPerHoleRadius > maxPageEndTime) {
                 // Doesn't fit in current page
                 if (previousNoteEvent) {
+                    // Try to center the page boder between notes on both sides, as much as possible
+                    const optimalPageEndTime = 0.5 * (previousNoteEvent.absoluteTimeInSeconds + noteEvent.absoluteTimeInSeconds);
+                    const pageEndTime = (optimalPageEndTime > maxPageEndTime) ? maxPageEndTime : optimalPageEndTime;
+
                     // Finish current page
-                    currentPage.endTimeInSeconds = previousNoteEvent.absoluteTimeInSeconds;
+                    currentPage.endTimeInSeconds = pageEndTime;
 
                     // Start a new page
                     currentPage = {
-                        startTimeInSeconds: previousNoteEvent.absoluteTimeInSeconds,
+                        startTimeInSeconds: pageEndTime,
                         endTimeInSeconds: 0,
                         midiEvents: [],
                         pageNum: currentPage.pageNum + 1,
