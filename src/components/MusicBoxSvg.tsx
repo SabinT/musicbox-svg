@@ -192,8 +192,6 @@ export default class MusicBoxSvg extends React.Component<IMusicBoxSvgProps, {}> 
         } else {
             // Render jigsaw joiner so that it can join with previous page
             // (also enabled in loop mode for first page)
-            const profile = this.props.musicBoxProfile;
-
             return this.renderJigsawJoiner(
                 /* xStart: */0,
                 height
