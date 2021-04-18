@@ -162,7 +162,7 @@ export default class MusicBoxSvg extends React.Component<IMusicBoxSvgProps, {}> 
                             }
                             {
                                 drawTrailingBorder &&
-                                this.renderTrailingBorder(xLen, yLen, /* isLastPage: */ false)
+                                this.renderTrailingBorder(xLen, yLen, /* isLastPage: */ page.pageNum === pages.length - 1)
                             }
                         </>
                     }
