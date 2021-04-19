@@ -285,7 +285,7 @@ export class MidiTrack implements IMidiChunk {
                 }
 
                 if (usesMetricalTiming) {
-                    midiEvent.absoluteTimeInSeconds = cumulativeSeconds;
+                    midiEvent.absTimeSeconds = cumulativeSeconds;
                 }
 
                 midiEvent.channelMessageType = messageType;
@@ -328,7 +328,7 @@ export class MidiTrack implements IMidiChunk {
                 }
 
                 if (usesMetricalTiming) {
-                    midiEvent.absoluteTimeInSeconds = cumulativeSeconds;
+                    midiEvent.absTimeSeconds = cumulativeSeconds;
                 }
 
                 this.events.push(midiEvent);

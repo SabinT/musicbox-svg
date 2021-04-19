@@ -35,8 +35,8 @@
   justify-content: center;
   flex-direction: column;
   align-items: center;
-  overflow: scroll;
-  max-width: 800px;
+  max-width: 80%;
+  box-sizing: content-box;
 }
 
 .mb-svg-downloadButton {

@@ -59,7 +59,7 @@ export default class MusicBoxSvg extends React.Component<IMusicBoxSvgProps, {}> 
     private svgRefs: (SVGElement | null)[] = [];
     private numPages: number = 0;
 
-    private error: string = '';
+    private errors: string[] = [];
 
     public getNumPages(): number {
         return this.numPages;
@@ -94,10 +94,10 @@ export default class MusicBoxSvg extends React.Component<IMusicBoxSvgProps, {}> 
 
             return (
                 <>
-                    <Callout intent={!this.error ? 'success' : 'danger'}>
+                    <Callout intent={!this.errors ? 'success' : 'danger'}>
                         {
-                            this.error &&
-                            <p>{this.error}</p>
+                            this.errors &&
+                            this.errors.map((e) => <p>{e}</p>)
                         }
                         {<p>Total paper length: {totalPaperLength.toFixed(2)} mm, width: {mbProfile.paperWidthMm} mm</p>}
                     </Callout>
@@ -273,16 +273,17 @@ export default class MusicBoxSvg extends React.Component<IMusicBoxSvgProps, {}> 
         const supportedEvents: NoteMidiEvent[] = [];
         const unsupportedEvents: NoteMidiEvent[] = [];
 
-        this.error = '';
+        this.errors = [];
 
         if (!this.props.midiFile.getTracks()) {
-            this.error = 'No tracks found!';
+            this.errors.push('No tracks found!');
         }
 
-        // Filter notes bases on what'supported by the music box
+        // Filter notes bases on what'supported by the music box.
+        // Transpose unsupported notes if possible/desired .
         this.filterNotes(supportedNoteSet, supportedEvents, unsupportedEvents);
         if (unsupportedEvents.length > 0) {
-            this.error += `Unsupported notes found: ${unsupportedEvents.length} total. Inspect MIDI file or music box profile`;
+            this.errors.push(`Unsupported notes found: ${unsupportedEvents.length} total. Inspect MIDI file or music box profile`);
         }
 
         const formatOptions = this.props.formatting;
@@ -304,19 +305,35 @@ export default class MusicBoxSvg extends React.Component<IMusicBoxSvgProps, {}> 
 
         pages.push(currentPage);
 
-        let currentNoteIndex = 0;
-        let previousNoteEvent: NoteMidiEvent | null = null;
         const secondsPerHoleRadius = musicBoxProfile.holeDiameterMm * 0.5 / musicBoxProfile.millimetersPerSecond;
+        const minNoteGapSeconds = musicBoxProfile.minNoteGapMm / musicBoxProfile.millimetersPerSecond;
+
+        let currentNoteIndex = 0;
+        let skippedNotes = new Map<MidiNote, number>();
+        let skipCount = 0;
+        let previousNoteEvent: NoteMidiEvent | null = null;
 
         while (currentNoteIndex < supportedEvents.length) {
             const noteEvent = supportedEvents[currentNoteIndex];
             const maxPageEndTime = currentPage.startTimeInSeconds + pageLengthInSeconds;
 
-            if (noteEvent.absoluteTimeInSeconds + 0.5 * secondsPerHoleRadius > maxPageEndTime) {
+            // Coalesce/skip notes that are too close
+            if (previousNoteEvent &&
+                previousNoteEvent.note === noteEvent.note &&
+                noteEvent.absTimeSeconds <= previousNoteEvent.absTimeSeconds + minNoteGapSeconds
+            ) {
+                skippedNotes.set(noteEvent.note, skippedNotes.get(noteEvent.note) ?? 0 + 1);
+                skipCount++;
+                currentNoteIndex++;
+                continue;
+            }
+
+            // Pagination
+            if (noteEvent.absTimeSeconds + 0.5 * secondsPerHoleRadius > maxPageEndTime) {
                 // Doesn't fit in current page
                 if (previousNoteEvent) {
                     // Try to center the page boder between notes on both sides, as much as possible
-                    const optimalPageEndTime = 0.5 * (previousNoteEvent.absoluteTimeInSeconds + noteEvent.absoluteTimeInSeconds);
+                    const optimalPageEndTime = 0.5 * (previousNoteEvent.absTimeSeconds + noteEvent.absTimeSeconds);
                     const pageEndTime = (optimalPageEndTime > maxPageEndTime) ? maxPageEndTime : optimalPageEndTime;
 
                     // Finish current page
@@ -345,7 +362,7 @@ export default class MusicBoxSvg extends React.Component<IMusicBoxSvgProps, {}> 
 
         // Finish last page
         if (previousNoteEvent) {
-            currentPage.endTimeInSeconds = previousNoteEvent.absoluteTimeInSeconds;
+            currentPage.endTimeInSeconds = previousNoteEvent.absTimeSeconds;
         } else {
             throw new Error('No supported MIDI notes!');
         }
@@ -360,6 +377,9 @@ export default class MusicBoxSvg extends React.Component<IMusicBoxSvgProps, {}> 
             currentPage.endTimeInSeconds += secsRemainingOnLastPage;
         }
 
+        // Add error about skipped notes
+        this.errors.push(`${skipCount} notes skipped (too close). Try increasing mm/sec. MIDI may contain overlapping notes.`);
+
         return pages;
     }
 
@@ -369,20 +389,54 @@ export default class MusicBoxSvg extends React.Component<IMusicBoxSvgProps, {}> 
         const musicTrack: MidiTrack = midiHeader.fileFormat === MidiFileFormat.multiTrack
             ? midiTracks[1] // First track is tempor track for type 1 MIDI files
             : midiTracks[0];
+
         const noteOnEvents: NoteMidiEvent[] = musicTrack.events.filter(e => e instanceof NoteMidiEvent &&
             (e as NoteMidiEvent).channelMessageType === ChannelMessageType.NoteOn) as NoteMidiEvent[];
+
+        // Build a note transpose mapping incrementally as needed
+        let transposeMemo = new Map<MidiNote, MidiNote>();
+        let transposedCount = 0;
+
         let lastAbsoluteTime: number = 0;
         noteOnEvents.forEach(e => {
+            if (this.props.formatting.transposeOutOfRangeNotes) {
+                if (!supportedNoteSet.has((e.note))) {
+                    // Build transpose memo incrementally
+                    if (!transposeMemo.has(e.note)) {
+                        // Find the first supported note that is an integer octave from the note
+                        let transposeCandidate: MidiNote | null = null;
+                        for (let suppNote of Array.from(supportedNoteSet)) {
+                            if ((suppNote - e.note) % 12 == 0) {
+                                transposeCandidate = suppNote;
+                                break;
+                            }
+                        }
+
+                        if (transposeCandidate) {
+                            transposeMemo.set(e.note, transposeCandidate);
+                        }
+                    }
+
+                    const transposed = transposeMemo.get(e.note);
+                    if (transposed) {
+                        e.note = transposed;
+                        transposedCount++;
+                    }
+                }
+            }
+
             if (supportedNoteSet.has((e.note))) {
                 supportedEvents.push(e);
-                if (e.absoluteTimeInSeconds > lastAbsoluteTime) {
-                    lastAbsoluteTime = e.absoluteTimeInSeconds;
+                if (e.absTimeSeconds > lastAbsoluteTime) {
+                    lastAbsoluteTime = e.absTimeSeconds;
                 }
             }
             else {
                 unsupportedEvents.push(e);
             }
         });
+
+        this.errors.push(`${transposedCount} notes transposed.`);
     }
 }
 
@@ -398,7 +452,7 @@ function createCircle(
     const noteIndex = noteIndices.get(midiEvent.note) || 0;
 
     return <circle key={key}
-        cx={(midiEvent.absoluteTimeInSeconds - startTimeInSeconds) * musicBoxProfile.millimetersPerSecond + "mm"}
+        cx={(midiEvent.absTimeSeconds - startTimeInSeconds) * musicBoxProfile.millimetersPerSecond + "mm"}
         cy={noteOffsetY + noteIndex * noteGap + "mm"}
         r={musicBoxProfile.holeDiameterMm / 2 + "mm"}
         fill={'none'}

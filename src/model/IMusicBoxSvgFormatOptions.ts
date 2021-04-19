@@ -19,8 +19,8 @@ export interface IMusicBoxSvgFormatOptions {
     /** Omit page boundaries when paginating */
     omitPageBoundaries: boolean;
 
-    /** Optimize page boundaries to avoid half circles */
-    optimizePageBoundaries: boolean;
+    /** Transpose out of range notes to within range if possible */
+    transposeOutOfRangeNotes: boolean;
 
     /** Add jigsaw joiners to both start/end so that a loop can be created */
     loopMode: boolean;

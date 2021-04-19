@@ -39,7 +39,7 @@ describe('Multitrack (type 1) MIDI file', () => {
 
         // The length of track is 20 seconds.
         expect(temptTrackEndOfTrack.deltaTime).toBe(7680);
-        expect(temptTrackEndOfTrack.absoluteTimeInSeconds).toBe(20);
+        expect(temptTrackEndOfTrack.absTimeSeconds).toBe(20);
 
         // Test music track properties (third chunk/second track)
         // This file contains notes 8 notes, C4, D4, E4, ... C5, arranged 0.5 seconds apart,
@@ -65,8 +65,8 @@ describe('Multitrack (type 1) MIDI file', () => {
             expect(noteOnEvent.deltaTime).toBe(0);
             expect(noteOffEvent.deltaTime).toBe(192);
 
-            expect(noteOnEvent.absoluteTimeInSeconds).toBe(expectedNoteStartTimeSeconds);
-            expect(noteOffEvent.absoluteTimeInSeconds).toBe(expectedNoteStartTimeSeconds + 0.5);
+            expect(noteOnEvent.absTimeSeconds).toBe(expectedNoteStartTimeSeconds);
+            expect(noteOffEvent.absTimeSeconds).toBe(expectedNoteStartTimeSeconds + 0.5);
         }
 
         const musicTrackEndOfTrack =
@@ -74,7 +74,7 @@ describe('Multitrack (type 1) MIDI file', () => {
 
         // Though the music is 4 seconds long, the track is 20 seconds long.
         expect(musicTrackEndOfTrack.deltaTime).toBe(6144);
-        expect(musicTrackEndOfTrack.absoluteTimeInSeconds).toBe(20);
+        expect(musicTrackEndOfTrack.absTimeSeconds).toBe(20);
     });
 
 })

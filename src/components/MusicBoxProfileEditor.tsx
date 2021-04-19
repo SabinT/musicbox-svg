@@ -1,4 +1,4 @@
-import './MusicBoxProfileEditor.css';
+import './Common.css';
 import { IMusicBoxProfile, BuiltInProfiles } from '../model/IMusicBoxProfile';
 import React, { useState } from 'react';
 import { Card, NumericInput, Button, Label, H4, Callout, Menu, MenuItem, Popover, Position } from '@blueprintjs/core';
@@ -41,8 +41,8 @@ export function MusicBoxProfileEditor(props: IMusicBoxProfileEditorProps) {
     return (
         <Card className={'mb-MusicBoxProfileEditor'}>
             <H4><span>{profileSelectionPopOver} Music Box Profile: {profile.name}</span></H4>
-            <div className={'mb-MusicBoxProfileEditor-settingLayout'}>
-                <div className={'mb-MusicBoxProfileEditor-settingGroup'}>
+            <div className={'mb-settingLayout'}>
+                <div className={'mb-settingGroup'}>
                     <Label>
                         Paper width (mm)
                         <NumericInput
@@ -55,8 +55,14 @@ export function MusicBoxProfileEditor(props: IMusicBoxProfileEditorProps) {
                             value={profile.contentWidthMm}
                             onValueChange={(num, str) => { setProfile({ ...profile, contentWidthMm: num }) }} />
                     </Label>
+                    <Label>
+                        Minimum Note Gap (mm)
+                        <NumericInput
+                            value={profile.minNoteGapMm}
+                            onValueChange={(num, str) => { setProfile({ ...profile, minNoteGapMm: num }) }} />
+                    </Label>
                 </div>
-                <div className={'mb-MusicBoxProfileEditor-settingGroup'}>
+                <div className={'mb-settingGroup'}>
                     <Label>
                         Millimeters per second
                         <NumericInput
@@ -71,7 +77,7 @@ export function MusicBoxProfileEditor(props: IMusicBoxProfileEditorProps) {
                     </Label>
                     <Button onClick={onApplyProfile}>Apply</Button>
                 </div>
-                <div className={'mb-MusicBoxProfileEditor-settingGroup'}>
+                <div className={'mb-settingGroup'}>
                     <Callout>
                         Supported Notes: {profile.supportedNotes.map(x => MidiNote[x].replace('s', '#')).join(', ')}
                     </Callout>

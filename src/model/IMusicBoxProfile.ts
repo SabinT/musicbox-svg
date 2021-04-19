@@ -30,6 +30,11 @@ export interface IMusicBoxProfile {
      * The ideal length in paper for one second of music.
      */
     millimetersPerSecond: number;
+
+    /**
+     * The minimum acceptable gap between two notes on the same line.
+     */
+    minNoteGapMm: number;
 }
 
 export const BuiltInProfiles: { [key: string]: IMusicBoxProfile } = {
@@ -43,7 +48,8 @@ export const BuiltInProfiles: { [key: string]: IMusicBoxProfile } = {
             MidiNote.A5, MidiNote.B5, MidiNote.C6
         ],
         holeDiameterMm: 1.8,
-        millimetersPerSecond: 20
+        millimetersPerSecond: 20,
+        minNoteGapMm: 3
     },
 
     'thirtyNote': {
@@ -58,6 +64,7 @@ export const BuiltInProfiles: { [key: string]: IMusicBoxProfile } = {
             MidiNote.A5, MidiNote.As5, MidiNote.B5, MidiNote.C6, MidiNote.D6, MidiNote.E6
         ],
         holeDiameterMm: 2,
-        millimetersPerSecond: 20
+        millimetersPerSecond: 20,
+        minNoteGapMm: 3
     }
 }

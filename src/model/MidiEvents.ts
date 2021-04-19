@@ -49,12 +49,12 @@ export interface IMidiEvent {
     /**
      * Not a part of the MIDI format, but included here for convenience
      */
-    absoluteTimeInSeconds: number;
+    absTimeSeconds: number;
 }
 
 export abstract class BaseMidiEvent implements IMidiEvent {
     public deltaTime: number;
-    public absoluteTimeInSeconds: number = 0;
+    public absTimeSeconds: number = 0;
 
     constructor(deltaTime: number) {
         this.deltaTime = deltaTime;

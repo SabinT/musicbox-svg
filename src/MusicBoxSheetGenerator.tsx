@@ -35,13 +35,13 @@ export default class MusicBoxSheetGenerator extends React.Component<{}, IAppStat
     this.state = {
       midiJson: '',
       midiDataAvailable: false,
-      musicBoxProfile: BuiltInProfiles['fifteenNote'],
+      musicBoxProfile: BuiltInProfiles['thirtyNote'],
       musicBoxSvgFormatOptions: {
         pageWidthMm: 200,
         startPaddingMm: 10,
         renderBorder: true,
         omitPageBoundaries: false,
-        optimizePageBoundaries: true,
+        transposeOutOfRangeNotes: true,
         loopMode: false
       },
       showMidiJson: false
@@ -76,7 +76,8 @@ export default class MusicBoxSheetGenerator extends React.Component<{}, IAppStat
       </div>;
 
     let formatSettings: JSX.Element = <></>;
-    if (this.state.midiDataAvailable && this.state.midiFile) {
+    //if (this.state.midiDataAvailable && this.state.midiFile) {
+    if (true) {
       formatSettings =
         <div className='mb-settingsTab-container'>
           <MusicBoxSvgFormatEditor
@@ -118,14 +119,14 @@ export default class MusicBoxSheetGenerator extends React.Component<{}, IAppStat
         <Divider />
         {
           this.state.midiDataAvailable && this.state.midiFile &&
-          <Card className='mb-musicBox-preview'>
+          <div className='mb-musicBox-preview'>
             <MusicBoxSvg
               ref={(el) => { this.musicBoxSvgRef = el; }}
               musicBoxProfile={this.state.musicBoxProfile}
               formatting={this.state.musicBoxSvgFormatOptions}
               midiFile={this.state.midiFile}
               elementId={'mb-musicBoxSvg'} />
-          </Card>
+          </div>
         }
         <div className='mb-debugMessage-Container'>
           {
