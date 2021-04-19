@@ -166,6 +166,8 @@ export default class MusicBoxSvg extends React.Component<IMusicBoxSvgProps, {}> 
                             }
                         </>
                     }
+                </g>
+                <g>
                     {
                         page.midiEvents.map((noteOnEvent, i) =>
                             createCircle(
