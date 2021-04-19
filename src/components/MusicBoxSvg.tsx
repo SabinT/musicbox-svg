@@ -406,7 +406,7 @@ export default class MusicBoxSvg extends React.Component<IMusicBoxSvgProps, {}> 
                         // Find the first supported note that is an integer octave from the note
                         let transposeCandidate: MidiNote | null = null;
                         for (let suppNote of Array.from(supportedNoteSet)) {
-                            if ((suppNote - e.note) % 12 == 0) {
+                            if ((suppNote - e.note) % 12 === 0) {
                                 transposeCandidate = suppNote;
                                 break;
                             }
