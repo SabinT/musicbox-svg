@@ -1,0 +1,26 @@
+{
+  "files": {
+    "main.css": "/musicbox-svg/static/css/main.bb6957a3.chunk.css",
+    "main.js": "/musicbox-svg/static/js/main.dcd86a1e.chunk.js",
+    "main.js.map": "/musicbox-svg/static/js/main.dcd86a1e.chunk.js.map",
+    "runtime-main.js": "/musicbox-svg/static/js/runtime-main.86ec12bb.js",
+    "runtime-main.js.map": "/musicbox-svg/static/js/runtime-main.86ec12bb.js.map",
+    "static/css/2.9df4b80b.chunk.css": "/musicbox-svg/static/css/2.9df4b80b.chunk.css",
+    "static/js/2.1b4cc2ee.chunk.js": "/musicbox-svg/static/js/2.1b4cc2ee.chunk.js",
+    "static/js/2.1b4cc2ee.chunk.js.map": "/musicbox-svg/static/js/2.1b4cc2ee.chunk.js.map",
+    "index.html": "/musicbox-svg/index.html",
+    "precache-manifest.c59c5380022cf8074a3728f37ff03c66.js": "/musicbox-svg/precache-manifest.c59c5380022cf8074a3728f37ff03c66.js",
+    "service-worker.js": "/musicbox-svg/service-worker.js",
+    "static/css/2.9df4b80b.chunk.css.map": "/musicbox-svg/static/css/2.9df4b80b.chunk.css.map",
+    "static/css/main.bb6957a3.chunk.css.map": "/musicbox-svg/static/css/main.bb6957a3.chunk.css.map",
+    "static/js/2.1b4cc2ee.chunk.js.LICENSE.txt": "/musicbox-svg/static/js/2.1b4cc2ee.chunk.js.LICENSE.txt",
+    "static/media/MusicBoxSheetGenerator.css": "/musicbox-svg/static/media/icons-20.cef8cdbb.woff"
+  },
+  "entrypoints": [
+    "static/js/runtime-main.86ec12bb.js",
+    "static/css/2.9df4b80b.chunk.css",
+    "static/js/2.1b4cc2ee.chunk.js",
+    "static/css/main.bb6957a3.chunk.css",
+    "static/js/main.dcd86a1e.chunk.js"
+  ]
+}
