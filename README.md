@@ -1,4 +1,4 @@
-Try it live: https://www.lumic.space
+Try it live: https://sabint.github.io/musicbox-svg/
 
 This project will produce SVG files that can be printed or laser cut on paper to produce music box strips. Options will be provided to select paper width, number of notes supported by the box, etc.
 
