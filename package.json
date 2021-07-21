@@ -2,7 +2,6 @@
   "name": "musicbox-svg",
   "version": "0.1.0",
   "private": true,
-  "homepage": "http://sabint.github.io/musicbox-svg",
   "dependencies": {
     "@blueprintjs/core": "^3.24.0",
     "@testing-library/jest-dom": "^4.2.4",
