@@ -35,7 +35,7 @@
   justify-content: center;
   flex-direction: column;
   align-items: center;
-  max-width: 80%;
+  max-width: 100%;
   box-sizing: content-box;
 }
 
